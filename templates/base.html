@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Page</title>
+    <style>
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            background-color: #333;
+            color: white;
+            padding: 10px;
+        }
+        .navbar a {
+            color: white;
+            padding: 10px;
+            text-decoration: none;
+        }
+        .navbar a:hover {
+            background-color: #ddd;
+            color: black;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="navbar">
+        <div>
+            <a href="/">Home</a>
+            <a href="/about/">About</a>
+            <!-- 更多导航链接 -->
+        </div>
+        <div>
+            {% if user.is_authenticated %}
+            Hello, {{ user.username }} | <a href="{% url 'logout' %}">Logout</a>
+            {% else %}
+            <a href="{% url 'login' %}">Login</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <main>
+        {% block content %}
+        <!-- Main content will go here -->
+        {% endblock %}
+    </main>
+
+</body>
+</html>
+
