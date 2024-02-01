@@ -1,0 +1,21 @@
+
+* requirements
+- django==3.2
+  #+begin_src bash
+    pip install django==3.2
+  #+end_src
+
+* startup
+#+begin_src bash
+  cd django_webapp
+  python manage.py runserver
+#+end_src
+
+* django commands
+
+** add new app
+#+begin_src bash
+  python manage.py startapp app-name
+#+end_src
+
+

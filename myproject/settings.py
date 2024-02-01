@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-r+e--j-unh$4&kyb-&4v14tuz7m&yhkbxbg+m2o9ft)jjj&t8c
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.0.207', '39.106.57.99']
+ALLOWED_HOSTS = ['192.168.0.207', '39.106.57.99', '127.0.0.1']
 
 
 # Application definition
@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'loginapp',
     'imageapp',
+    'camera',
 ]
 
 MIDDLEWARE = [

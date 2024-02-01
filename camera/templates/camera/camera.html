@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}
+<title>Camera Settings Interface</title>
+{% endblock %}
+
+{% block head_style %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+<style>
+ /* Custom styles to better match the screenshot */
+ .sidebar {
+     background-color: #FF4500;
+     color: white;
+ }
+
+ .sidebar .nav-item:hover {
+     background-color: #FF5733;
+ }
+
+ .nav-link {
+     color: white;
+ }
+
+ .nav-link.active {
+     background-color: #FF5733;
+ }
+
+ .control-label {
+     margin-right: 10px;
+ }
+ 
+ .slider {
+     width: auto;
+ }
+</style>
+{% endblock %}
+
+{% block content %}
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-2 d-none d-md-block bg-light sidebar">
+                <div class="sidebar-sticky">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#">
+                                <i class="fas fa-camera"></i>
+                                Camera
+                            </a>
+                        </li>
+                        <!-- Other sidebar items -->
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-4">
+                <div class="py-2">
+                    <div class="container-fluid">
+                        <!-- Tabs -->
+                        <ul class="nav nav-tabs">
+                            <li class="nav-item">
+                                <a class="nav-link active" href="#">Conditions</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#">Profile Management</a>
+                            </li>
+                        </ul>
+                        <!-- Camera view and controls -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <!-- Camera view -->
+                                <img src="https://placehold.co/600x300" alt="Fish-eye view of a camera lens capturing a room's interior" class="img-fluid rounded">
+                            </div>
+                            <div class="col-md-6">
+                                <!-- Controls -->
+                                <form>
+                                    <div class="form-group">
+                                        <label for="profileSelect">Profile</label>
+                                        <select class="form-control" id="profileSelect">
+                                            <option>Day</option>
+                                            <option>Night</option>
+                                        </select>
+                                    </div>
+                                    <!-- Slider controls (e.g., brightness, contrast) -->
+                                    <div class="form-group row">
+                                        <label class="control-label col-sm-2" for="brightness">Brightness</label>
+                                        <div class="col-sm-10">
+                                            <input type="range" class="form-control-range" id="brightness">
+                                        </div>
+                                    </div>
+                                    <!-- Repeat for other controls -->
+                                </form>
+                            </div>
+                        </div>
+                        <!-- Save buttons -->
+                        <div class="row">
+                            <div class="col-md-12">
+                                <button type="button" class="btn btn-default">Default</button>
+                                <button type="button" class="btn btn-secondary">Cancel</button>
+                                <button type="button" class="btn btn-primary">Save</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    {% endblock %}
+{% block endscript %}
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+{% endblock %}
+
+
+
