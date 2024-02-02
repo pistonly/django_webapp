@@ -31,6 +31,7 @@ ALLOWED_HOSTS = ['192.168.0.207', '39.106.57.99', '127.0.0.1']
 # Application definition
 
 INSTALLED_APPS = [
+    "daphne",
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -40,6 +41,7 @@ INSTALLED_APPS = [
     'loginapp',
     'imageapp',
     'camera',
+    'channels',
 ]
 
 MIDDLEWARE = [
@@ -128,3 +130,4 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+ASGI_APPLICATION = 'myproject.asgi.application'
