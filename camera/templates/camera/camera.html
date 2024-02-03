@@ -38,19 +38,32 @@
 {% block content %}
 <div class="container-fluid">
     <div class="row">
+
         <!-- Sidebar -->
         <nav class="col-md-2 d-none d-md-block bg-light sidebar">
             <div class="sidebar-sticky">
                 <ul class="nav flex-column">
                     <li class="nav-item">
-                        <a class="nav-link active" href="#">
-                            <i class="fas fa-camera"></i>
-                            Camera
-                        </a>
+
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text" id="camera-addon"><i class="fa fa-camera"></i></span>
+                            </div>
+                            <select class="custom-select" id="select_camera" aria-label="Example select with camera icon" aria-describedby="camera-addon">
+                                <!-- 相机选项将通过JavaScript动态添加 -->
+                            </select>
+                        </div>
+
                     </li>
                     <!-- Other sidebar items -->
+                    <li class="nav-item" >
+                        <div>test</div>
+                    </li>
                 </ul>
             </div>
+            <!-- 在这里添加一个隐藏的div来存储动态生成的URL -->
+            <div id="camera-list-url" data-url="{% url 'camera_list' %}" style="display: none;"></div>
+            
         </nav>
 
         <!-- Main Content -->
@@ -69,8 +82,7 @@
                     <!-- Camera view and controls -->
                     <div class="row">
                         <div class="col-md-6">
-                            <!-- <img id="camera-image" src="https://placehold.co/600x300" alt="Camera Stream" class="img-fluid rounded"> -->
-                            <img id="camera-image" src="" alt="Camera Stream" class="img-fluid rounded">
+                            <img id="camera-image" src="https://placehold.co/600x300" alt="Camera Stream" class="img-fluid rounded">
 
                             <!-- Camera view -->
                         </div>
@@ -98,9 +110,9 @@
                     <!-- Save buttons -->
                     <div class="row">
                         <div class="col-md-12">
-                            <button type="button" class="btn btn-default">Default</button>
-                            <button type="button" class="btn btn-secondary">Cancel</button>
-                            <button type="button" class="btn btn-primary">Save</button>
+                            <button type="button" class="btn btn-default" onclick="startPreview()">预览</button>
+                            <button type="button" class="btn btn-secondary" onclick="stopPreview()">停止</button>
+                            <button type="button" class="btn btn-primary" onclick="saveImg()">保存</button>
                         </div>
                     </div>
                 </div>
@@ -112,13 +124,72 @@
 
 {% block endscript %}
 <script>
-    var img = document.getElementById("camera-image");
-    var ws = new WebSocket("ws://" + window.location.host + "/ws/camera/");
+ var img = document.getElementById("camera-image");
+ var ws;
 
-    ws.onmessage = function(event) {
-        var data = JSON.parse(event.data);
-        img.src = "data:image/jpeg;base64," + data.frame;
-    };
+ function startPreview() {
+         var cameraId = document.getElementById("select_camera").value;
+         
+         ws = new WebSocket("ws://" + window.location.host + "/ws/camera/");
+         
+         ws.onopen = function(e) {
+             console.log("Connection established!");
+             ws.send(JSON.stringify({'camera_id': cameraId}));
+         };
+         
+         ws.onmessage = function(e) {
+             var data = JSON.parse(e.data);
+             document.getElementById("camera-image").src = "data:image/jpeg;base64," + data.frame;
+         };
+         
+         ws.onerror = function(e) {
+             console.error("WebSocket error: ", e);
+         };
+         
+         ws.onclose = function(e) {
+             console.log("WebSocket closed");
+         };
+     }
+
+ function stopPreview() {
+     ws.close(1000, "stop preview.");
+ }
+
+ function saveImg() {
+     console.log("saveImg");
+ }
+
+ function getCameraList() {
+     // 使用fetch API从后端异步获取相机列表
+     const url = document.getElementById("camera-list-url").getAttribute("data-url");
+     fetch(url)
+         .then(response => response.json())
+         .then(data => {
+             const cameras = data.cameras; // 假设后端返回的数据格式是 { cameras: ['camera0', 'camera1'] }
+             const selectCamera = document.getElementById("select_camera");
+             
+             // 清空现有的选项
+             selectCamera.innerHTML = '';
+
+             // 为每个相机创建一个新的<option>元素，并添加到<select>中
+             cameras.forEach(camera => {
+                 const option = document.createElement("option");
+                 option.value = camera;
+                 option.text = camera;
+                 selectCamera.appendChild(option);
+             });
+
+             // 默认选择第一个相机
+             if(cameras.length > 0) {
+                 selectCamera.value = cameras[0];
+             }
+         })
+         .catch(error => {
+             console.error('Error fetching camera list:', error);
+         });
+ }
+
+ window.onload = getCameraList;
 </script>
 
 <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>

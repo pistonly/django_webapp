@@ -7,29 +7,45 @@ import random
 import cv2
 import base64
 import time
+from .mindvision.camera_utils import get_devInfo_list, get_one_frame, image_to_numpy, initialize_cam
+import asyncio
+from PIL import Image
+import numpy as np
+import io
 
+camera_lock = asyncio.Lock()
+camera_dict = {}
+
+camera_list = get_devInfo_list()
+camera_list = [{'dev_info': dev_info} for dev_info in camera_list]
+camera_ids = [f'camera_{i}' for i in range(len(camera_list))]
+camera_dict = dict(zip(camera_ids, camera_list))
 
 class CameraStreamConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         await self.accept()
-        # 启动一个后台任务模拟不断从相机获取数据并发送
-        self.camera_feed_task = asyncio.create_task(self.camera_feed())
         print("connected")
 
     async def receive(self, text_data=None, bytes_data=None):
         # 这里可以根据需要处理接收到的数据
-        print(f'received data: {text_data}, bytes: {bytes_data}')
+        print(f"received data: {text_data}, bytes: {bytes_data}")
+        text_data_json = json.loads(text_data)
+        camera_id = text_data_json['camera_id']
+        self.camera_feed_task = asyncio.create_task(self.camera_feed(camera_id))
 
     async def send_frame(self, frame):
-        # 假设frame是已经处理好的图像数据
-        await self.send(text_data=json.dumps({'frame': frame}))
+        try:
+            await self.send(text_data=json.dumps({"frame": frame}))
+        except:
+            print("camera feed cancelledError")
+            pass
 
-    async def camera_feed(self):
+    async def camera_feed(self, camera_id):
         try:
             frame_num = 0
             t0 = time.time()
             while True:
-                frame = self.get_camera_frame()  # 假设这个方法获取最新的相机帧
+                frame = await self.get_camera_frame(camera_id)  # 假设这个方法获取最新的相机帧
                 await self.send_frame(frame)  # 调用send_frame发送图像数据
                 if frame_num % 100 == 99:
                     print(f"frame rate: {100 / (time.time() - t0)}")
@@ -40,13 +56,6 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
             print("camera feed cancelledError")
             pass
 
-    def get_camera_frame(self):
-        img_dir = Path("/home/liuyang/datasets/sod4bird/images_6x6/images/")
-        img_list = [str(img_f) for img_f in img_dir.iterdir() if img_f.suffix.lower() in ['.jpg', '.bmp', '.png']]
-        img_id = random.randint(0, len(img_list) - 1)
-        with open(img_list[img_id], "rb") as image_file:
-            return base64.b64encode(image_file.read()).decode('utf-8')
-
     async def disconnect(self, close_code):
         # 取消之前创建的任务
         self.camera_feed_task.cancel()
@@ -56,3 +65,29 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
         except asyncio.CancelledError:
             pass
 
+    async def get_cameras(self):
+        async with camera_lock:
+            camera_list = get_devInfo_list()
+            camera_list = [{'dev_info': dev_info} for dev_info in camera_list]
+            camera_ids = [f'camera_{i}' for i in range(len(camera_list))]
+            camera_dict = dict(zip(camera_ids, camera_list))
+            return camera_ids
+
+    async def get_camera_frame(self, camera_id):
+        frame = None
+        if camera_id not in camera_dict:
+            print(f"{camera_id} not in camera_dict: {list(camera_dict.keys())}")
+            frame = np.random.randint(0, 255, (640, 640))
+        else:
+            if "handle" not in camera_dict[camera_id]:
+                camera_res = initialize_cam(camera_dict[camera_id]['dev_info'])
+                camera_dict[camera_id].update(dict(zip(["handle", "cap", "mono", "bs", "pb"],
+                                                       camera_res)))
+            frame = image_to_numpy(*get_one_frame(camera_dict[camera_id]['handle'],
+                                                  camera_dict[camera_id]['pb']))
+            if frame.shape[-1] == 1:
+                frame = frame[:, :, 0]
+        img = Image.fromarray(frame.astype('uint8'))
+        buffer = io.BytesIO()
+        img.save(buffer, format="JPEG")
+        return base64.b64encode(buffer.getvalue()).decode('utf-8')
