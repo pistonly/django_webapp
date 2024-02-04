@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "imageapp",
     "camera",
     "channels",
+    "rest_framework",
 ]
 
 MIDDLEWARE = [

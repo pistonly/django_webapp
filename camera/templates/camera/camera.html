@@ -1,11 +1,13 @@
 {% extends "base.html" %}
 
+
 {% block title %}
 <title>Camera Settings Interface</title>
 {% endblock %}
 
 {% block head_style %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 <style>
     /* Custom styles to better match the screenshot */
     .sidebar {
@@ -56,14 +58,14 @@
 
                     </li>
                     <!-- Other sidebar items -->
-                    <li class="nav-item" >
+                    <li class="nav-item">
                         <div>test</div>
                     </li>
                 </ul>
             </div>
             <!-- 在这里添加一个隐藏的div来存储动态生成的URL -->
             <div id="camera-list-url" data-url="{% url 'camera_list' %}" style="display: none;"></div>
-            
+
         </nav>
 
         <!-- Main Content -->
@@ -103,8 +105,104 @@
                                         <input type="range" class="form-control-range" id="brightness">
                                     </div>
                                 </div>
-                                <!-- Repeat for other controls -->
+
+                                <!-- resolutin -->
+                                <div class="d-flex">
+                                    <div class="dropdown mx-3" id="resolution-dropdown">
+                                        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                            resolutions
+                                        </button>
+                                        <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                                            <form class="px-4 py-3">
+                                                <div class="form-group">
+                                                    <label for="customInput">Type or select an option</label>
+                                                    <input type="text" class="form-control" id="customInput" placeholder="Type here">
+                                                </div>
+                                                <div class="dropdown-divider"></div>
+                                                <a class="dropdown-item" href="#">2448x2048</a>
+                                                <a class="dropdown-item" href="#">1920x1080</a>
+                                            </form>
+                                        </div>
+                                    </div>
+                                    <span id="selectedValue" class="ml-2 my-auto"> Current Value: None</span>
+                                </div>
+
+                                <!-- toggle mode -->
+                                <div class="mb-4">
+                                    <div class="flex justify-between">
+                                        <div>
+                                            <label class="block text-gray-700 text-sm font-bold mb-2">Toggle Mode</label>
+
+                                            <div>
+                                                <div class="flex items-center">
+                                                    <input type="radio" class="mr-2" name="toggle" value="0" checked> <span>continous</span>
+                                                    <input type="radio" class="mr-2 ml-4" name="toggle" value="1"> <span>SW-Toggle</span>
+                                                    <input type="radio" class="mr-2 ml-4" name="toggle" value="2"> <span>HW-Toggle</span>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label class="block text-gray-700 text-sm font-bold mb-2">Flashlight</label>
+                                                <div class="flex items-center">
+                                                    <input type="radio" class="mr-2" name="flashlight" value="0" checked> <span>Auto</span>
+                                                    <input type="radio" class="mr-2 ml-4" name="flashlight" value="1"> <span>Manual</span>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label class="block text-gray-700 text-sm font-bold mb-2">Polarity</label>
+                                                <div class="flex items-center">
+                                                    <input type="radio" class="mr-2" name="polority" value="0" checked> <span>High</span>
+                                                    <input type="radio" class="mr-2 ml-4" name="polority" value="1"> <span>Low</span>
+                                                </div>
+                                            </div>
+
+                                        </div>
+
+
+
+                                        <div class="mb-4">
+                                            <label class="block text-gray-700 text-sm font-bold mb-2 text-right">Mapping Table Settings</label>
+                                            <div class="mb-4">
+                                                <label for="gamma" class="block text-gray-700 text-sm font-bold mb-2 text-right">Gamma</label>
+                                                <input type="range" id="gamma" name="gamma" min="0" max="100" value="50" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
+                                            </div>
+                                            <div class="mb-4">
+                                                <label for="contrast" class="block text-gray-700 text-sm font-bold mb-2 text-right">Contrast</label>
+                                                <input type="range" id="contrast" name="contrast" min="0" max="100" value="50" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
+                                            </div>
+                                        </div>
+
+
+
+                                    </div>
+                                </div>
+
+                                <!-- test -->
+                                <div class="mb-4">
+                                    <div class="flex justify-between">
+                                        <div>
+                                            <label class="block text-gray-700 text-sm font-bold mb-2">ISP Processing</label>
+                                            <div class="flex items-center">
+                                                <input type="checkbox" class="mr-2"> <span>H Image</span>
+                                                <input type="checkbox" class="mr-2 ml-4"> <span>V Image</span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-gray-700 text-sm font-bold mb-2">Parameter</label>
+                                            <div class="flex items-center">
+                                                <input type="radio" class="mr-2" name="parameter" value="A" checked> <span>A</span>
+                                                <input type="radio" class="mr-2 ml-4" name="parameter" value="B"> <span>B</span>
+                                                <input type="radio" class="mr-2 ml-4" name="parameter" value="C"> <span>C</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                             </form>
+
+
+
                         </div>
                     </div>
                     <!-- Save buttons -->
@@ -113,6 +211,7 @@
                             <button type="button" class="btn btn-default" onclick="startPreview()">预览</button>
                             <button type="button" class="btn btn-secondary" onclick="stopPreview()">停止</button>
                             <button type="button" class="btn btn-primary" onclick="saveImg()">保存</button>
+                            <button type="button" class="btn btn-primary" onclick="getCameraParameters()">load</button>
                         </div>
                     </div>
                 </div>
@@ -120,80 +219,215 @@
         </main>
     </div>
 </div>
+
+<div class="max-w-lg mx-auto bg-white p-6 rounded-lg shadow-lg">
+    <div class="mb-4">
+        <label class="block text-gray-700 text-sm font-bold mb-2">Resolution</label>
+        <select class="block appearance-none w-full bg-gray-200 border border-gray-200 text-gray-700 py-3 px-4 pr-8 rounded leading-tight focus:outline-none focus:bg-white focus:border-gray-500">
+            <option>3664x2748 Max</option>
+        </select>
+    </div>
+
+    <div class="mb-4">
+        <div class="flex justify-between">
+            <div>
+                <label class="block text-gray-700 text-sm font-bold mb-2">Toggle Mode</label>
+                <div class="relative">
+                    <select class="block appearance-none w-full bg-gray-200 border border-gray-200 text-gray-700 py-3 px-4 pr-8 rounded leading-tight focus:outline-none focus:bg-white focus:border-gray-500">
+                        <option>Continuous</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-gray-700 text-sm font-bold mb-2">Mapping Table Settings</label>
+                <div class="flex space-x-2">
+                    <input type="number" class="w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" placeholder="Gamma">
+                    <input type="number" class="w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" placeholder="Contrast">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-4">
+        <label class="block text-gray-700 text-sm font-bold mb-2">Exposure Settings</label>
+        <div class="relative">
+            <select class="block appearance-none w-full bg-gray-200 border border-gray-200 text-gray-700 py-3 px-4 pr-8 rounded leading-tight focus:outline-none focus:bg-white focus:border-gray-500">
+                <option>Auto</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="mb-4">
+        <div class="flex justify-between">
+            <div>
+                <label class="block text-gray-700 text-sm font-bold mb-2">ISP Processing</label>
+                <div class="flex items-center">
+                    <input type="checkbox" class="mr-2"> <span>H Image</span>
+                    <input type="checkbox" class="mr-2 ml-4"> <span>V Image</span>
+                </div>
+            </div>
+            <div>
+                <label class="block text-gray-700 text-sm font-bold mb-2">Parameter</label>
+                <div class="flex items-center">
+                    <input type="radio" class="mr-2" name="parameter"> <span>A</span>
+                    <input type="radio" class="mr-2 ml-4" name="parameter"> <span>B</span>
+                    <input type="radio" class="mr-2 ml-4" name="parameter"> <span>C</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex items-center justify-between">
+        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" type="button">
+            Save
+        </button>
+        <button class="bg-transparent hover:bg-blue-500 text-blue-700 font-semibold hover:text-white py-2 px-4 border border-blue-500 hover:border-transparent rounded" type="button">
+            Default
+        </button>
+        <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" type="button">
+            Upload
+        </button>
+    </div>
+</div>
+</body>
+
 {% endblock %}
 
 {% block endscript %}
-<script>
- var img = document.getElementById("camera-image");
- var ws;
-
- function startPreview() {
-         var cameraId = document.getElementById("select_camera").value;
-         
-         ws = new WebSocket("ws://" + window.location.host + "/ws/camera/");
-         
-         ws.onopen = function(e) {
-             console.log("Connection established!");
-             ws.send(JSON.stringify({'camera_id': cameraId}));
-         };
-         
-         ws.onmessage = function(e) {
-             var data = JSON.parse(e.data);
-             document.getElementById("camera-image").src = "data:image/jpeg;base64," + data.frame;
-         };
-         
-         ws.onerror = function(e) {
-             console.error("WebSocket error: ", e);
-         };
-         
-         ws.onclose = function(e) {
-             console.log("WebSocket closed");
-         };
-     }
-
- function stopPreview() {
-     ws.close(1000, "stop preview.");
- }
-
- function saveImg() {
-     console.log("saveImg");
- }
-
- function getCameraList() {
-     // 使用fetch API从后端异步获取相机列表
-     const url = document.getElementById("camera-list-url").getAttribute("data-url");
-     fetch(url)
-         .then(response => response.json())
-         .then(data => {
-             const cameras = data.cameras; // 假设后端返回的数据格式是 { cameras: ['camera0', 'camera1'] }
-             const selectCamera = document.getElementById("select_camera");
-             
-             // 清空现有的选项
-             selectCamera.innerHTML = '';
-
-             // 为每个相机创建一个新的<option>元素，并添加到<select>中
-             cameras.forEach(camera => {
-                 const option = document.createElement("option");
-                 option.value = camera;
-                 option.text = camera;
-                 selectCamera.appendChild(option);
-             });
-
-             // 默认选择第一个相机
-             if(cameras.length > 0) {
-                 selectCamera.value = cameras[0];
-             }
-         })
-         .catch(error => {
-             console.error('Error fetching camera list:', error);
-         });
- }
-
- window.onload = getCameraList;
+<script type="text/javascript">
+    var csrftoken = jQuery("[name=csrfmiddlewaretoken]").val();
 </script>
 
-<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+<script>
+    console.log("csrftoken");
+    console.log(csrftoken);
+
+    var img = document.getElementById("camera-image");
+    var ws;
+
+    function startPreview() {
+        var cameraId = document.getElementById("select_camera").value;
+
+        ws = new WebSocket("ws://" + window.location.host + "/ws/camera/");
+
+        ws.onopen = function(e) {
+            console.log("Connection established!");
+            ws.send(JSON.stringify({
+                'camera_id': cameraId
+            }));
+        };
+
+        ws.onmessage = function(e) {
+            var data = JSON.parse(e.data);
+            document.getElementById("camera-image").src = "data:image/jpeg;base64," + data.frame;
+        };
+
+        ws.onerror = function(e) {
+            console.error("WebSocket error: ", e);
+        };
+
+        ws.onclose = function(e) {
+            console.log("WebSocket closed");
+        };
+    }
+
+    function stopPreview() {
+        ws.close(1000, "stop preview.");
+    }
+
+    function saveImg() {
+        console.log("saveImg");
+    }
+
+    function getCameraList() {
+        // 使用fetch API从后端异步获取相机列表
+        const url = document.getElementById("camera-list-url").getAttribute("data-url");
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                const cameras = data.cameras; // 假设后端返回的数据格式是 { cameras: ['camera0', 'camera1'] }
+                const selectCamera = document.getElementById("select_camera");
+
+                // 清空现有的选项
+                selectCamera.innerHTML = '';
+
+                // 为每个相机创建一个新的<option>元素，并添加到<select>中
+                cameras.forEach(camera => {
+                    const option = document.createElement("option");
+                    option.value = camera;
+                    option.text = camera;
+                    selectCamera.appendChild(option);
+                });
+
+                // 默认选择第一个相机
+                if (cameras.length > 0) {
+                    selectCamera.value = cameras[0];
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching camera list:', error);
+            });
+    }
+
+    function getCameraParameters() {
+        $.ajax({
+            url: '/api/camera/parameters/',
+            type: 'GET',
+            data: {
+                camera_id: $('#select_camera').val()
+            },
+            beforeSend: function() {
+                $(this).prop('disabled', true).text('Loading...');
+            },
+            complete: function() {
+                $(this).prop('disabled', false).text('Load Cameras');
+            },
+            success: function(data) {
+                // 处理数据...
+                console.log(data);
+            }
+        });
+    }
+
+    window.onload = getCameraList;
+
+    $(document).ready(function() {
+        $('.dropdown-item').click(function(event) {
+            event.preventDefault(); // 阻止<a>标签的默认行为
+            var selectedOption = $(this).text(); // 获取选中项的文本
+            $('#selectedValue').text('Current Value: ' + selectedOption); // 更新<span>元素的文本以显示选中的值
+        });
+        $('#customInput').click(function(event) {
+            event.preventDefault(); // 阻止<a>标签的默认行为
+            var selectedOption = $(this).val(); // 获取选中项的文本
+            $('#selectedValue').text('Current Value: ' + selectedOption); // 更新<span>元素的文本以显示选中的值
+        });
+
+    });
+
+    $(document).ready(function() {
+        $('#resolution-dropdown').on('hidden.bs.dropdown', function() {
+            // 下拉菜单关闭后的操作
+            console.log("closed");
+            $.ajax({
+                url: '/api/camera/parameters/',
+                type: 'POST',
+                data: {
+                    camera_id: $('#select_camera').val(),
+                    resolution: $('#selectedValue').text(),
+                },
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
+                success: function(data) {
+                    console.log("resolution setting success");
+                }
+            });
+        });
+    });
+</script>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
-
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
 {% endblock %}

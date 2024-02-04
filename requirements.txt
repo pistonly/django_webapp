@@ -2,3 +2,4 @@ channels[daphne]
 django==3.2
 opencv-python
 PILLOW
+djangorestframework

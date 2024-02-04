@@ -53,6 +53,139 @@ def close_camera(hCamera, pFrameBuffer):
     mvsdk.CameraAlignFree(pFrameBuffer)
     return
 
+def get_camera_parameters(hCamera):
+    parameters = {}
+    # get resolution
+    psCurVideoSize = mvsdk.CameraGetImageResolution(hCamera)
+    parameters.update({"resolution": {"w": psCurVideoSize.iWidth, "h": psCurVideoSize.iHeight}})
+
+    # get toggle mode
+    # 0, 1, 2; 0:continue, 1: soft trigger, 2: hard trigger
+    triggerMode = mvsdk.CameraGetTriggerMode(hCamera)
+    parameters.update({"triggerMode": triggerMode})
+
+    # ---------- exposure settings --------------------
+    # ae
+    # 0: false, 1: true
+    ae_state = mvsdk.CameraGetAeState(hCamera)
+    parameters.update({"ae_state": ae_state})
+
+    # 0-cameraGetCapability
+    ae_target = mvsdk.CameraGetAeTarget(hCamera)
+    parameters.update({"ae_target": ae_target})
+
+    # 0: false, 1: true
+    antiflick = mvsdk.CameraGetAntiFlick(hCamera)
+    parameters.update({"antiflick": antiflick})
+
+    # 0: 50HZ, 1: 60HZ
+    lightFrequency = mvsdk.CameraGetLightFrequency(hCamera)
+    parameters.update({'lightFrequency': lightFrequency})
+
+    # default: 10
+    analogGain = mvsdk.CameraGetAnalogGain(hCamera)
+    parameters.update({'analogGain': analogGain})
+
+    # unit: us
+    expose_time = mvsdk.CameraGetExposureTime(hCamera)
+    parameters.update({"expose_time": expose_time})
+
+    # (min, max, step)us
+    expose_timerange = mvsdk.CameraGetExposureTimeRange(hCamera)
+    parameters.update({"expose_timerange": expose_timerange})
+
+    # -------------------- isp --------------------
+    # 0: false, 1: true
+    h_mirror = mvsdk.CameraGetMirror(hCamera, 0)
+    v_mirror = mvsdk.CameraGetMirror(hCamera, 1)
+    parameters.update({'h_mirror': h_mirror, 'v_mirror': v_mirror})
+
+    # int 0-100
+    sharpness = mvsdk.CameraGetSharpness(hCamera)
+    parameters.update({'sharpness': sharpness})
+
+    # -------------------- mapping table --------------------
+    # get range from capbility
+    lut_gamma = mvsdk.CameraGetGamma(hCamera)
+    parameters.update({"lut_gamma": lut_gamma})
+    lut_contrast = mvsdk.CameraGetContrast(hCamera)
+    parameters.update({"lut_contrast": lut_contrast})
+
+    # -------------------- snap --------------------
+    # iWidth: 0 and iHeight: 0 means: the same with preview
+    snap_resolution = mvsdk.CameraGetResolutionForSnap(hCamera)
+    parameters.update({'snap_resolution': {'w': snap_resolution.iWidth, 'h': snap_resolution.iHeight}})
+
+    # -------------------- speed --------------------
+    # 0: low, 1: middle, 2: high
+    frame_speed = mvsdk.CameraGetFrameSpeed(hCamera)
+    parameters.update({'frame_speed': frame_speed})
+    return parameters
+
+
+def set_camera_parameter(hCamera, **kwargs):
+    # set resolution
+    if "resolution" in kwargs:
+        resolution = mvsdk.tSdkImageResolution()
+        resolution.iWidth = kwargs['resolution']['w']
+        resolution.iHeight = kwargs['resolution']['h']
+        mvsdk.CameraSetImageResolution(hCamera, resolution)
+
+    # -------------------- toggle mode --------------------
+    if "trigger_mode" in kwargs:
+        mvsdk.CameraSetTriggerMode(hCamera, int(kwargs['trigger_mode']))
+
+    # set lightingControllerMode
+    if "light_controller_mode" in kwargs:
+        mvsdk.CameraSetLightingControllerMode(hCamera, *kwargs['light_controller_mode'])
+
+    if "light_controller_state" in kwargs:
+        mvsdk.CameraSetLightingControllerState(hCamera, *kwargs['light_controller_state'])
+
+    # ---------- exposure settings --------------------
+    if 'ae_state' in kwargs:
+        mvsdk.CameraSetAeState(hCamera, kwargs['ae_state'])
+
+    if 'ae_target' in kwargs:
+        mvsdk.CameraSetAeTarget(hCamera, kwargs['ae_target'])
+
+    if 'antiflick' in kwargs:
+        mvsdk.CameraSetAntiFlick(hCamera, kwargs['antiflick'])
+
+    if 'lightFrequency' in kwargs:
+        mvsdk.CameraSetLightFrequency(hCamera, kwargs['lightFrequency'])
+
+    if 'analogGain' in kwargs:
+        mvsdk.CameraSetAnalogGain(hCamera, kwargs['analogGain'])
+
+    if "expose" in kwargs:
+        mvsdk.CameraSetExposureTime(hCamera, kwargs['expose'])
+
+    # -------------------- isp --------------------
+    if 'h_mirror' in kwargs:
+        mvsdk.CameraSetMirror(hCamera, 0, kwargs['h_mirror'])
+    if 'v_mirror' in kwargs:
+        mvsdk.CameraSetMirror(hCamera, 1, kwargs['v_mirror'])
+    if 'sharpness' in kwargs:
+        mvsdk.CameraSetSharpness(hCamera, kwargs['sharpness'])
+
+    # -------------------- mapping table --------------------
+    if 'lut_gamma' in kwargs:
+        mvsdk.CameraSetGamma(hCamera, kwargs['lut_gamma'])
+    if 'lut_contrast' in kwargs:
+        mvsdk.CameraSetContrast(hCamera, kwargs['lut_contrast'])
+
+    # -------------------- snap --------------------
+    if 'snap_resolution' in kwargs:
+        mvsdk.CameraSetResolutionForSnap(hCamera, kwargs['snap_resolution'])
+
+    # -------------------- speed --------------------
+    if 'frame_speed' in kwargs:
+        # val: [0, 1, 2]
+        mvsdk.CameraSetFrameSpeed(hCamera, kwargs['frame_speed'])
+    return True
+
+
 if __name__ == "__main__":
      import time
      device_list = get_devInfo_list()
