@@ -8,6 +8,9 @@
 * startup
 #+begin_src bash
   cd django_webapp
+  # install package
+  python -m pip install -r requirements.txt
+  # start server
   python manage.py runserver
 #+end_src
 
