@@ -1,5 +1,5 @@
-channels[daphne]
 django==3.2
+channels[daphne]
 opencv-python
 PILLOW
 djangorestframework
