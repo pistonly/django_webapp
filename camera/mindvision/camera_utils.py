@@ -46,6 +46,15 @@ def image_to_numpy(pFrameBuffer, FrameHead):
     frame = frame.reshape((FrameHead.iHeight, FrameHead.iWidth, 1 if FrameHead.uiMediaType == mvsdk.CAMERA_MEDIA_TYPE_MONO8 else 3) )
     return frame
 
+imgType_dict = {'bmp': mvsdk.FILE_BMP}
+def save_image(hCamera, pFrameBuffer, FrameHead, path, quality=100, img_type='bmp'):
+    status = mvsdk.CameraSaveImage(hCamera, path, pFrameBuffer, FrameHead, imgType_dict[img_type],
+                                   quality)
+    if status == mvsdk.CAMERA_STATUS_SUCCESS:
+        return True
+    else:
+        return False
+
 def close_camera(hCamera, pFrameBuffer):
 	# 关闭相机
     mvsdk.CameraUnInit(hCamera)

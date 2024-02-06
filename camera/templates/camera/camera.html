@@ -65,6 +65,7 @@
             </div>
             <!-- 在这里添加一个隐藏的div来存储动态生成的URL -->
             <div id="camera-list-url" data-url="{% url 'camera_list' %}" style="display: none;"></div>
+            <div id="camera-grab-url" data-url="{% url 'camera_grab' %}" style="display: none;"></div>
 
         </nav>
 
@@ -176,15 +177,15 @@
                                 </div>
 
                                 <div class="mb-4">
-                                            <label class="block text-gray-700 text-sm font-bold mb-2 text-right">Mapping Table Settings</label>
-                                            <div class="mb-4">
-                                                <label for="gamma" class="block text-gray-700 text-sm font-bold mb-2 text-right">Gamma</label>
-                                                <input type="range" id="gamma" name="gamma" min="0" max="100" value="50" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
-                                            </div>
-                                            <div class="mb-4">
-                                                <label for="contrast" class="block text-gray-700 text-sm font-bold mb-2 text-right">Contrast</label>
-                                                <input type="range" id="contrast" name="contrast" min="0" max="100" value="50" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
-                                            </div>
+                                    <label class="block text-gray-700 text-sm font-bold mb-2 text-right">Mapping Table Settings</label>
+                                    <div class="mb-4">
+                                        <label for="gamma" class="block text-gray-700 text-sm font-bold mb-2 text-right">Gamma</label>
+                                        <input type="range" id="gamma" name="gamma" min="0" max="100" value="50" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
+                                    </div>
+                                    <div class="mb-4">
+                                        <label for="contrast" class="block text-gray-700 text-sm font-bold mb-2 text-right">Contrast</label>
+                                        <input type="range" id="contrast" name="contrast" min="0" max="100" value="50" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
+                                    </div>
                                 </div>
                                 <!-- test -->
                                 <div class="mb-4">
@@ -343,8 +344,23 @@
         ws.close(1000, "stop preview.");
     }
 
+
     function saveImg() {
         console.log("saveImg");
+        const camera_grap_url = document.getElementById("camera-grab-url").getAttribute("data-url");
+        $.ajax({
+            url: camera_grap_url,
+            type: 'POST',
+            data: {
+                camera_id: $('#select_camera').val()
+            },
+            beforeSend: function(xhr) {
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success: function(data) {
+                console.log(data);
+            }
+        });
     }
 
     function getCameraList() {
@@ -456,7 +472,7 @@
                     // 错误处理
                     console.error('An error occurred: ' + error);
                     $('#status').text('Error changing exposure mode.');
-                }
+    }
             });
         });
 
