@@ -156,12 +156,26 @@
                                                     <input type="radio" class="mr-2 ml-4" name="polority" value="1"> <span>Low</span>
                                                 </div>
                                             </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <div class="flex justify-between">
+                                        <div>
+                                            <label class="block text-gray-700 text-sm font-bold mb-2">曝光设置</label>
+                                            <div>
+                                                <div class="flex items-center">
+                                                    <input type="radio" class="mr-2" name="exposure" value="1" checked> <span>Auto</span>
+                                                    <input type="radio" class="mr-2 ml-4" name="exposure" value="0"> <span>Manual</span>
+                                                </div>
+                                            </div>
 
                                         </div>
+                                    </div>
+                                </div>
 
-
-
-                                        <div class="mb-4">
+                                <div class="mb-4">
                                             <label class="block text-gray-700 text-sm font-bold mb-2 text-right">Mapping Table Settings</label>
                                             <div class="mb-4">
                                                 <label for="gamma" class="block text-gray-700 text-sm font-bold mb-2 text-right">Gamma</label>
@@ -171,13 +185,7 @@
                                                 <label for="contrast" class="block text-gray-700 text-sm font-bold mb-2 text-right">Contrast</label>
                                                 <input type="range" id="contrast" name="contrast" min="0" max="100" value="50" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
                                             </div>
-                                        </div>
-
-
-
-                                    </div>
                                 </div>
-
                                 <!-- test -->
                                 <div class="mb-4">
                                     <div class="flex justify-between">
@@ -424,6 +432,34 @@
                 }
             });
         });
+
+        $('input[type="radio"][name="exposure"]').change(function() {
+            var exposureMode = $(this).val();
+            // 使用 jQuery Ajax 向后端发送数据
+            $.ajax({
+                url: '/api/camera/parameters/',
+                type: 'POST',
+                data: {
+                    camera_id: $('#select_camera').val(),
+                    ae_state: exposureMode
+                },
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
+                success: function(response) {
+                    // 成功时的处理，例如显示一个消息
+                    console.log('Exposure mode changed to: ' + exposureMode);
+                    // 也可以在页面上显示一些反馈
+                    $('#status').text('Exposure mode changed to: ' + exposureMode);
+                },
+                error: function(xhr, status, error) {
+                    // 错误处理
+                    console.error('An error occurred: ' + error);
+                    $('#status').text('Error changing exposure mode.');
+                }
+            });
+        });
+
     });
 </script>
 

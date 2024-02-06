@@ -31,6 +31,7 @@ class CameraParameters(APIView):
             return Response({"error": f"Camera: {camera_id} is not initialized"}, status=status.HTTP_404_NOT_FOUND)
 
         parameters = get_camera_parameters(hCamera)
+        print(parameters)
         if parameters:
             return Response(parameters)
         else:
@@ -55,6 +56,7 @@ class CameraParameters(APIView):
                 data['resolution'] = dict(zip(['w', 'h'], [w, h]))
             else:
                 return Response({"error": f"resoluton format error!"}, status=status.HTTP_404_NOT_FOUND)
+
 
 
         if set_camera_parameter(hCamera, **data):

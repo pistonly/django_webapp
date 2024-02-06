@@ -144,7 +144,7 @@ def set_camera_parameter(hCamera, **kwargs):
 
     # ---------- exposure settings --------------------
     if 'ae_state' in kwargs:
-        mvsdk.CameraSetAeState(hCamera, kwargs['ae_state'])
+        mvsdk.CameraSetAeState(hCamera, int(kwargs['ae_state'][0]))
 
     if 'ae_target' in kwargs:
         mvsdk.CameraSetAeTarget(hCamera, kwargs['ae_target'])
