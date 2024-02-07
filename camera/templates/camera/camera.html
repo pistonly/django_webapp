@@ -107,25 +107,44 @@
                                     </div>
                                 </div>
 
-                                <!-- resolutin -->
-                                <div class="d-flex">
-                                    <div class="dropdown mx-3" id="resolution-dropdown">
-                                        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                            resolutions
-                                        </button>
-                                        <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                                            <form class="px-4 py-3">
-                                                <div class="form-group">
-                                                    <label for="customInput">Type or select an option</label>
-                                                    <input type="text" class="form-control" id="customInput" placeholder="Type here">
-                                                </div>
-                                                <div class="dropdown-divider"></div>
-                                                <a class="dropdown-item" href="#">2448x2048</a>
-                                                <a class="dropdown-item" href="#">1920x1080</a>
-                                            </form>
+
+                                <div class="container mt-5">
+                                    <!-- resolutin -->
+                                    <div class="input-group mb-3">
+                                        <input type="text" class="form-control" placeholder="输入或选择分辨率" id="resolution-input" aria-label="Resolution">
+                                        <div class="input-group-append">
+                                            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">选择</button>
+                                            <div class="dropdown-menu">
+                                                <a class="dropdown-item resolution-option" href="#">1920x1080</a>
+                                                <a class="dropdown-item resolution-option" href="#">1280x720</a>
+                                                <a class="dropdown-item resolution-option" href="#">640x480</a>
+                                            </div>
                                         </div>
                                     </div>
-                                    <span id="selectedValue" class="ml-2 my-auto"> Current Value: None</span>
+
+                                    <!-- exposure -->
+                                    <div class="mb-3">
+                                        <h2>曝光设置</h2>
+                                        <div class="form-check">
+                                            <input type="radio" name="exposure" value="auto" id="autoExposure" class="form-check-input" checked>
+                                            <label class="form-check-label" for="autoExposure">自动曝光</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input type="radio" name="exposure" value="manual" id="manualExposure" class="form-check-input">
+                                            <label class="form-check-label" for="manualExposure">手动设置</label>
+                                        </div>
+                                        <div id="auto-exposure-settings" class="mt-2">
+                                            自动曝光目标数值：<input type="number" class="form-control" min="0" step="1" value="100">
+                                            自动算法选择：<select class="form-control">
+                                                <option value="algorithm1">算法1</option>
+                                                <option value="algorithm2">算法2</option>
+                                            </select>
+                                        </div>
+                                        <div id="manual-exposure-settings" class="mt-2" style="display: none;">
+                                            设置曝光时间：<input type="number" class="form-control" min="0" step="1" value="100"> ms
+                                        </div>
+                                    </div>
+
                                 </div>
 
                                 <!-- toggle mode -->
@@ -173,6 +192,20 @@
                                             </div>
 
                                         </div>
+                                    </div>
+                                </div>
+
+                                <div class="container mt-3">
+                                    <div class="setting-group">
+                                        <h2>Gamma设置</h2>
+                                        <input type="range" class="custom-range" id="gamma-range" min="0.1" max="3.0" step="0.1" value="1.0">
+                                        <span id="gamma-value">1.0</span>
+                                    </div>
+
+                                    <div class="setting-group mt-3">
+                                        <h2>Contrast设置</h2>
+                                        <input type="range" class="custom-range" id="contrast-range" min="0" max="200" step="1" value="100">
+                                        <span id="contrast-value">100</span>
                                     </div>
                                 </div>
 
@@ -416,29 +449,19 @@
     window.onload = getCameraList;
 
     $(document).ready(function() {
-        $('.dropdown-item').click(function(event) {
-            event.preventDefault(); // 阻止<a>标签的默认行为
-            var selectedOption = $(this).text(); // 获取选中项的文本
-            $('#selectedValue').text('Current Value: ' + selectedOption); // 更新<span>元素的文本以显示选中的值
-        });
-        $('#customInput').click(function(event) {
-            event.preventDefault(); // 阻止<a>标签的默认行为
-            var selectedOption = $(this).val(); // 获取选中项的文本
-            $('#selectedValue').text('Current Value: ' + selectedOption); // 更新<span>元素的文本以显示选中的值
-        });
-
-    });
-
-    $(document).ready(function() {
-        $('#resolution-dropdown').on('hidden.bs.dropdown', function() {
-            // 下拉菜单关闭后的操作
-            console.log("closed");
+        $('.resolution-option').click(function(e) {
+            // 阻止<a>标签的默认行为
+            e.preventDefault();
+            // 获取点击的分辨率选项的文本，并设置到输入框中
+            var resolution = $(this).text();
+            $('#resolution-input').val(resolution);
+            // setting 
             $.ajax({
                 url: '/api/camera/parameters/',
                 type: 'POST',
                 data: {
                     camera_id: $('#select_camera').val(),
-                    resolution: $('#selectedValue').text(),
+                    resolution: resolution,
                 },
                 beforeSend: function(xhr) {
                     xhr.setRequestHeader("X-CSRFToken", csrftoken);
@@ -447,6 +470,20 @@
                     console.log("resolution setting success");
                 }
             });
+        });
+
+        $('#gamma-range').on('input', function() {
+            $('#gamma-value').text($(this).val());
+        });
+
+        $('#contrast-range').on('input', function() {
+            $('#contrast-value').text($(this).val());
+        });
+
+        $('#customInput').click(function(event) {
+            event.preventDefault(); // 阻止<a>标签的默认行为
+            var selectedOption = $(this).val(); // 获取选中项的文本
+            $('#selectedValue').text('Current Value: ' + selectedOption); // 更新<span>元素的文本以显示选中的值
         });
 
         $('input[type="radio"][name="exposure"]').change(function() {
@@ -472,7 +509,7 @@
                     // 错误处理
                     console.error('An error occurred: ' + error);
                     $('#status').text('Error changing exposure mode.');
-    }
+                }
             });
         });
 

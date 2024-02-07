@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>相机设置页面 - Bootstrap版</title>
+    <!-- 引入Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
+    <!-- 引入jQuery -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <!-- 引入Popper.js -->
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+    <!-- 引入Bootstrap JS -->
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</head>
+
+<body>
+    <div class="container mt-5">
+        <div class="input-group mb-3">
+            <input type="text" class="form-control" placeholder="输入或选择分辨率" id="resolution-input" aria-label="Resolution">
+            <div class="input-group-append">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">选择</button>
+                <div class="dropdown-menu">
+                    <a class="dropdown-item resolution-option" href="#">1920x1080</a>
+                    <a class="dropdown-item resolution-option" href="#">1280x720</a>
+                    <a class="dropdown-item resolution-option" href="#">640x480</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <h2>曝光设置</h2>
+            <div class="row">
+                <div class="col-auto form-check">
+                    <input type="radio" name="exposure" value="auto" id="autoExposure" class="form-check-input" checked>
+                    <label class="form-check-label" for="autoExposure">自动曝光</label>
+                </div>
+                <div class="col-auto form-check">
+                    <input type="radio" name="exposure" value="manual" id="manualExposure" class="form-check-input">
+                    <label class="form-check-label" for="manualExposure">手动设置</label>
+                </div>
+            </div>
+            <!-- Auto and manual exposure settings divs go here -->
+            <div id="auto-exposure-settings" class="mt-2">
+                自动曝光目标数值：<input type="number" class="form-control" min="0" step="1" value="100">
+                自动算法选择：<select class="form-control">
+                    <option value="algorithm1">算法1</option>
+                    <option value="algorithm2">算法2</option>
+                </select>
+            </div>
+
+            <div class="input-group mb-3" style="display: none;" id="manual-exposure-settings">
+                <input type="number" class="form-control" id="manualExposureTime" placeholder="设置曝光时间" aria-label="Exposure Time" min="0" step="1" value="100">
+                <div class="input-group-append">
+                    <span class="input-group-text">ms</span>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="mb-3">
+            <h2>触发模式</h2>
+            <div class="row">
+                <div class="col-auto form-check">
+                    <input type="radio" name="trigger" value="0" id="continous-mode" class="form-check-input" checked>
+                    <label class="form-check-label" for="continous-mode">连续触发</label>
+                </div>
+                <div class="col-auto form-check">
+                    <input type="radio" name="trigger" value="1" id="soft-mode" class="form-check-input">
+                    <label class="form-check-label" for="soft-mode">软件触发</label>
+                </div>
+                <div class="col-auto form-check">
+                    <input type="radio" name="trigger" value="2" id="hard-mode" class="form-check-input">
+                    <label class="form-check-label" for="hard-mode">硬件触发</label>
+                </div>
+            </div>
+
+            <div class="mb-3" id="trigger-action" style="display: none;">
+                <button type="button" class="btn btn-primary">Trigger</button>
+            </div>
+        </div>
+
+
+        <div class="mb-3">
+            <h2>闪光灯</h2>
+            <div class="row">
+                <div class="col-auto form-check">
+                    <input type="radio" name="lighting" value="0" id="light-auto" class="form-check-input" checked>
+                    <label class="form-check-label" for="continous-mode">自动</label>
+                </div>
+                <div class="col-auto form-check">
+                    <input type="radio" name="lighting" value="1" id="light-manaual" class="form-check-input">
+                    <label class="form-check-label" for="soft-mode">手动</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <h2>Mapping Table Settings</h2>
+            <div id="mapping-table-settings" class="mt-2">
+                gamma：<span id="gamma-value">1.0</span>
+                <input type="range" class="custom-range" id="gamma-range" min="0.1" max="3.0" step="0.1" value="1.0">
+
+                contrast： <span id="contrast-value">100</span>
+                <input type="range" class="custom-range" id="contrast-range" min="0" max="200" step="1" value="100">
+            </div>
+
+        </div>
+        <!-- 其他设置组，类似地使用Bootstrap组件和类进行美化... -->
+
+        <!-- 页面的JavaScript逻辑... -->
+        <script>
+            $(document).ready(function() {
+                // Listen for changes on the exposure radio buttons
+                $('input[name="exposure"]').change(function() {
+                    // Check if the auto exposure is selected
+                    if ($('#autoExposure').is(':checked')) {
+                        $('#auto-exposure-settings').show(); // Show auto exposure settings
+                        $('#manual-exposure-settings').hide(); // Hide manual exposure settings
+                    } else if ($('#manualExposure').is(':checked')) {
+                        $('#auto-exposure-settings').hide(); // Hide auto exposure settings
+                        $('#manual-exposure-settings').show(); // Show manual exposure settings
+                    }
+                });
+
+                // exposure
+                $('.resolution-option').click(function(e) {
+                    // 阻止<a>标签的默认行为
+                    e.preventDefault();
+                    // 获取点击的分辨率选项的文本，并设置到输入框中
+                    var resolution = $(this).text();
+                    $('#resolution-input').val(resolution);
+                    // setting 
+                    $.ajax({
+                        url: '/api/camera/parameters/',
+                        type: 'POST',
+                        data: {
+                            camera_id: $('#select_camera').val(),
+                            resolution: resolution,
+                        },
+                        beforeSend: function(xhr) {
+                            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                        },
+                        success: function(data) {
+                            console.log("resolution setting success");
+                        }
+                    });
+                });
+
+                // trigger mode
+                // Listen for changes on the trigger mode radio buttons
+                $('input[name="trigger"]').change(function() {
+                    if ($('#soft-mode').is(':checked')) {
+                        // Show the trigger button when "软件触发" is selected
+                        $('#trigger-action').show();
+                    } else {
+                        // Hide the trigger button for other selections
+                        $('#trigger-action').hide();
+                    }
+                });
+
+                // lut mapping
+                $('#gamma-range').on('input', function() {
+                    $('#gamma-value').text($(this).val());
+                });
+
+                $('#contrast-range').on('input', function() {
+                    $('#contrast-value').text($(this).val());
+                });
+
+            });
+        </script>
+</body>
+
+</html>
