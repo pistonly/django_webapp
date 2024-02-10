@@ -77,9 +77,21 @@
                 </div>
             </div>
 
-            <div class="mb-3" id="trigger-action" style="display: none;">
-                <button type="button" class="btn btn-primary">Trigger</button>
+
+            <div class="row" id="trigger-settings" style="display: none;">
+                <div class="col">
+                    <label for="trigger-delay">Trigger Delay (ms)</label>
+                    <input type="number" class="form-control" id="trigger-delay" placeholder="Delay (ms)" value="1000">
+                </div>
+                <div class="col">
+                    <label for="trigger-count-input">Trigger Count</label>
+                    <input type="number" class="form-control" id="trigger-count-input" placeholder="Trigger Count" value="1">
+                </div>
+                <div class="col">
+                    <button type="button" id="trigger-btn" class="btn btn-primary">Trigger</button>
+                </div>
             </div>
+
         </div>
 
 
@@ -152,12 +164,12 @@
                 // trigger mode
                 // Listen for changes on the trigger mode radio buttons
                 $('input[name="trigger"]').change(function() {
-                    if ($('#soft-mode').is(':checked')) {
+                    if ($('#continous-mode').is(':checked')) {
                         // Show the trigger button when "软件触发" is selected
-                        $('#trigger-action').show();
+                        $('#trigger-settings').hide();
                     } else {
                         // Hide the trigger button for other selections
-                        $('#trigger-action').hide();
+                        $('#trigger-settings').show();
                     }
                 });
 

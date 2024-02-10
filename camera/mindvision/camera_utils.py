@@ -73,6 +73,13 @@ def get_camera_parameters(hCamera):
     triggerMode = mvsdk.CameraGetTriggerMode(hCamera)
     parameters.update({"triggerMode": triggerMode})
 
+    # unit: us
+    triggerDelayTime = mvsdk.CameraGetTriggerDelayTime(hCamera)
+    parameters.update({"triggerDelayTime": triggerDelayTime})
+
+    triggerCount = mvsdk.CameraGetTriggerCount(hCamera)
+    parameters.update({"triggerCount": triggerCount})
+
     # ---------- exposure settings --------------------
     # ae
     # 0: false, 1: true
@@ -143,6 +150,12 @@ def set_camera_parameter(hCamera, **kwargs):
     # -------------------- toggle mode --------------------
     if "trigger_mode" in kwargs:
         mvsdk.CameraSetTriggerMode(hCamera, int(kwargs['trigger_mode']))
+
+    if "triggerDelayTime" in kwargs:
+        mvsdk.CameraSetTriggerDelayTime(hCamera, int(kwargs['triggerDelayTime']))
+
+    if 'triggerCount' in kwargs:
+        mvsdk.CameraSetTriggerCount(hCamera, int(kwargs['triggerCount']))
 
     # set lightingControllerMode
     if "light_controller_mode" in kwargs:
