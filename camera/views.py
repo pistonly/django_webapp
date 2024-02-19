@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from .consumers import camera_dict
+from .consumers import camera_dict, update_camera_list
 from .mindvision.camera_utils import initialize_cam, save_image, get_one_frame
 from datetime import datetime
 from pathlib import Path
@@ -19,6 +19,8 @@ def camera_view(request):
 @login_required
 def camera_list(request):
     print("camera list")
+    global camera_dict
+    camera_dict = update_camera_list()
     camera_ids = list(camera_dict.keys())
     if len(camera_ids) < 1:
         camera_ids = ["---------"]

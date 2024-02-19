@@ -1,9 +1,10 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .mindvision.camera_utils import get_camera_parameters, set_camera_parameter
+from .mindvision.camera_utils import get_camera_parameters, set_camera_parameter, initialize_cam
 from .consumers import camera_dict
 import re
+
 
 def get_resolution_from_text(content):
     pattern = r"(\d+)x(\d+)"
@@ -28,7 +29,10 @@ class CameraParameters(APIView):
 
         hCamera = camera_info.get('handle')
         if not hCamera:
-            return Response({"error": f"Camera: {camera_id} is not initialized"}, status=status.HTTP_404_NOT_FOUND)
+            camera_res = initialize_cam(camera_dict[camera_id]['dev_info'])
+            camera_dict[camera_id].update(dict(zip(["handle", "cap", "mono", "bs", "pb"],
+                                                   camera_res)))
+            hCamera = camera_info.get('handle')
 
         parameters = get_camera_parameters(hCamera)
         print(parameters)
@@ -56,7 +60,6 @@ class CameraParameters(APIView):
                 data['resolution'] = dict(zip(['w', 'h'], [w, h]))
             else:
                 return Response({"error": f"resoluton format error!"}, status=status.HTTP_404_NOT_FOUND)
-
 
 
         if set_camera_parameter(hCamera, **data):

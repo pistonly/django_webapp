@@ -45,7 +45,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
+<div>
     <div class="row">
 
         <!-- Sidebar -->
@@ -113,7 +113,7 @@
 
                             <div class="mb-3">
                                 <h2>曝光设置</h2>
-                                <div class="row">
+                                <div class="row ml-2">
                                     <div class="col-auto form-check">
                                         <input type="radio" name="exposure" value="auto" id="autoExposure" class="form-check-input" checked>
                                         <label class="form-check-label" for="autoExposure">自动曝光</label>
@@ -143,7 +143,7 @@
 
                             <div class="mb-3">
                                 <h2>触发模式</h2>
-                                <div class="row">
+                                <div class="row ml-2">
                                     <div class="col-auto form-check">
                                         <input type="radio" name="trigger" value="0" id="continous-mode" class="form-check-input" checked>
                                         <label class="form-check-label" for="continous-mode">连续触发</label>
@@ -159,9 +159,9 @@
                                 </div>
 
 
-                                <div class="row" id="trigger-settings" style="display: none;">
+                                <div class="row ml-2" id="trigger-settings" style="display: none;">
                                     <div class="col">
-                                        <label for="trigger-delay">Trigger Delay (ms)</label>
+                                        <label for="trigger-delay">Delay (ms)</label>
                                         <input type="number" class="form-control" id="trigger-delay" placeholder="Delay (ms)" value="1000">
                                     </div>
                                     <div class="col">
@@ -178,7 +178,7 @@
 
                             <div class="mb-3">
                                 <h2>闪光灯</h2>
-                                <div class="row">
+                                <div class="row ml-2">
                                     <div class="col-auto form-check">
                                         <input type="radio" name="lighting" value="0" id="light-auto" class="form-check-input" checked>
                                         <label class="form-check-label" for="continous-mode">自动</label>
@@ -287,7 +287,7 @@
     function getCameraList() {
         // 使用fetch API从后端异步获取相机列表
         const url = document.getElementById("camera-list-url").getAttribute("data-url");
-        fetch(url)
+        return fetch(url) // 注意这里返回fetch的Promise
             .then(response => response.json())
             .then(data => {
                 const cameras = data.cameras; // 假设后端返回的数据格式是 { cameras: ['camera0', 'camera1'] }
@@ -314,18 +314,14 @@
             });
     }
 
+
     function getCameraParameters() {
+        console.log($('#select_camera').val());
         $.ajax({
             url: '/api/camera/parameters/',
             type: 'GET',
             data: {
                 camera_id: $('#select_camera').val()
-            },
-            beforeSend: function() {
-                $(this).prop('disabled', true).text('Loading...');
-            },
-            complete: function() {
-                $(this).prop('disabled', false).text('Load Cameras');
             },
             success: function(data) {
                 // 处理数据...
@@ -334,7 +330,16 @@
         });
     }
 
-    window.onload = getCameraList;
+    function onloadfunc() {
+        getCameraList().then(() => {
+            // 绑定change事件监听器到select_camera元素
+            $('#select_camera').change(getCameraParameters);
+            // 手动触发一次getCameraParameters以加载初始相机的参数
+            getCameraParameters();
+        });
+    }
+
+    window.onload = onloadfunc;
 
     $(document).ready(function() {
         // Listen for changes on the exposure radio buttons
@@ -411,32 +416,31 @@
     });
 
     $('input[type="radio"][name="exposure"]').change(function() {
-    var exposureMode = $(this).val();
-    // 使用 jQuery Ajax 向后端发送数据
-    $.ajax({
-        url: '/api/camera/parameters/',
-        type: 'POST',
-        data: {
-            camera_id: $('#select_camera').val(),
-            ae_state: exposureMode
-        },
-        beforeSend: function(xhr) {
-            xhr.setRequestHeader("X-CSRFToken", csrftoken);
-        },
-        success: function(response) {
-            // 成功时的处理，例如显示一个消息
-            console.log('Exposure mode changed to: ' + exposureMode);
-            // 也可以在页面上显示一些反馈
-            $('#status').text('Exposure mode changed to: ' + exposureMode);
-        },
-        error: function(xhr, status, error) {
-            // 错误处理
-            console.error('An error occurred: ' + error);
-            $('#status').text('Error changing exposure mode.');
-        }
+        var exposureMode = $(this).val();
+        // 使用 jQuery Ajax 向后端发送数据
+        $.ajax({
+            url: '/api/camera/parameters/',
+            type: 'POST',
+            data: {
+                camera_id: $('#select_camera').val(),
+                ae_state: exposureMode
+            },
+            beforeSend: function(xhr) {
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success: function(response) {
+                // 成功时的处理，例如显示一个消息
+                console.log('Exposure mode changed to: ' + exposureMode);
+                // 也可以在页面上显示一些反馈
+                $('#status').text('Exposure mode changed to: ' + exposureMode);
+            },
+            error: function(xhr, status, error) {
+                // 错误处理
+                console.error('An error occurred: ' + error);
+                $('#status').text('Error changing exposure mode.');
+            }
+        });
     });
-    });
-
 </script>
 
 {% endblock %}

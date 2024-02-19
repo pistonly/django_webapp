@@ -7,7 +7,7 @@ import random
 import cv2
 import base64
 import time
-from .mindvision.camera_utils import get_devInfo_list, get_one_frame, image_to_numpy, initialize_cam
+from .mindvision.camera_utils import get_devInfo_list, get_one_frame, image_to_numpy, initialize_cam, close_camera
 import asyncio
 from PIL import Image
 import numpy as np
@@ -16,10 +16,18 @@ import io
 camera_lock = asyncio.Lock()
 camera_dict = {}
 
-camera_list = get_devInfo_list()
-camera_list = [{'dev_info': dev_info} for dev_info in camera_list]
-camera_ids = [f'camera_{i}' for i in range(len(camera_list))]
-camera_dict = dict(zip(camera_ids, camera_list))
+
+def update_camera_list():
+    global camera_dict
+    camera_list = get_devInfo_list()
+    camera_list = [{'dev_info': dev_info} for dev_info in camera_list]
+    camera_ids = [f'camera_{i}' for i in range(len(camera_list))]
+    for camera_id, camera_info in zip(camera_ids, camera_list):
+        if camera_id not in camera_dict:
+            camera_dict[camera_id] = camera_info
+    return camera_dict
+
+update_camera_list()
 
 class CameraStreamConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -30,7 +38,7 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
         # 这里可以根据需要处理接收到的数据
         print(f"received data: {text_data}, bytes: {bytes_data}")
         text_data_json = json.loads(text_data)
-        camera_id = text_data_json['camera_id']
+        self.camera_id = camera_id = text_data_json['camera_id']
         self.camera_feed_task = asyncio.create_task(self.camera_feed(camera_id))
 
     async def send_frame(self, frame):
@@ -65,14 +73,6 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
         except asyncio.CancelledError:
             pass
 
-    async def get_cameras(self):
-        async with camera_lock:
-            camera_list = get_devInfo_list()
-            camera_list = [{'dev_info': dev_info} for dev_info in camera_list]
-            camera_ids = [f'camera_{i}' for i in range(len(camera_list))]
-            camera_dict = dict(zip(camera_ids, camera_list))
-            return camera_ids
-
     async def get_camera_frame(self, camera_id):
         frame = None
         if camera_id not in camera_dict:
@@ -83,6 +83,7 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
                 camera_res = initialize_cam(camera_dict[camera_id]['dev_info'])
                 camera_dict[camera_id].update(dict(zip(["handle", "cap", "mono", "bs", "pb"],
                                                        camera_res)))
+                self.camera_handle = camera_dict[camera_id]['handle']
             frame = image_to_numpy(*get_one_frame(camera_dict[camera_id]['handle'],
                                                   camera_dict[camera_id]['pb']))
             if frame.shape[-1] == 1:
