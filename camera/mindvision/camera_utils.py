@@ -1,4 +1,5 @@
-from . import mvsdk
+# from . import mvsdk
+import mvsdk
 import numpy as np
 
 
@@ -62,7 +63,7 @@ def close_camera(hCamera, pFrameBuffer):
     mvsdk.CameraAlignFree(pFrameBuffer)
     return
 
-def get_camera_parameters(hCamera):
+def get_camera_parameters(hCamera, cap):
     parameters = {}
     # get resolution
     psCurVideoSize = mvsdk.CameraGetImageResolution(hCamera)
@@ -87,8 +88,12 @@ def get_camera_parameters(hCamera):
     parameters.update({"ae_state": ae_state})
 
     # 0-cameraGetCapability
+    ae_target_range = (cap.sExposeDesc.uiTargetMin, cap.sExposeDesc.uiTargetMax)
+    parameters.update({"ae_target_range": ae_target_range})
     ae_target = mvsdk.CameraGetAeTarget(hCamera)
     parameters.update({"ae_target": ae_target})
+    expose_range = (cap.sExposeDesc.uiExposeTimeMin, cap.sExposeDesc.uiExposeTimeMax)
+    parameters.update({"expose_range": expose_range})
 
     # 0: false, 1: true
     antiflick = mvsdk.CameraGetAntiFlick(hCamera)
@@ -122,8 +127,13 @@ def get_camera_parameters(hCamera):
 
     # -------------------- mapping table --------------------
     # get range from capbility
+    gamma_range = (cap.sGammaRange.iMin, cap.sGammaRange.iMax)
+    parameters.update({"lut_gamma_range": gamma_range})
     lut_gamma = mvsdk.CameraGetGamma(hCamera)
     parameters.update({"lut_gamma": lut_gamma})
+
+    contrast_range = (cap.sContrastRange.iMin, cap.sContrastRange.iMax)
+    parameters.update({"lut_contrast_range": contrast_range})
     lut_contrast = mvsdk.CameraGetContrast(hCamera)
     parameters.update({"lut_contrast": lut_contrast})
 
@@ -166,7 +176,7 @@ def set_camera_parameter(hCamera, **kwargs):
 
     # ---------- exposure settings --------------------
     if 'ae_state' in kwargs:
-        mvsdk.CameraSetAeState(hCamera, int(kwargs['ae_state'][0]))
+        mvsdk.CameraSetAeState(hCamera, int(kwargs['ae_state']))
 
     if 'ae_target' in kwargs:
         mvsdk.CameraSetAeTarget(hCamera, kwargs['ae_target'])
@@ -208,6 +218,42 @@ def set_camera_parameter(hCamera, **kwargs):
     return True
 
 
+def PrintCapbility(cap):
+    for i in range(cap.iTriggerDesc):
+        desc = cap.pTriggerDesc[i]
+        print("{}: {}".format(desc.iIndex, desc.GetDescription()))
+    for i in range(cap.iImageSizeDesc):
+        desc = cap.pImageSizeDesc[i]
+        print("{}: {}".format(desc.iIndex, desc.GetDescription()))
+    for i in range(cap.iClrTempDesc):
+        desc = cap.pClrTempDesc[i]
+        print("{}: {}".format(desc.iIndex, desc.GetDescription()))
+    for i in range(cap.iMediaTypeDesc):
+        desc = cap.pMediaTypeDesc[i]
+        print("{}: {}".format(desc.iIndex, desc.GetDescription()))
+    for i in range(cap.iFrameSpeedDesc):
+        desc = cap.pFrameSpeedDesc[i]
+        print("{}: {}".format(desc.iIndex, desc.GetDescription()))
+    for i in range(cap.iPackLenDesc):
+        desc = cap.pPackLenDesc[i]
+        print("{}: {}".format(desc.iIndex, desc.GetDescription()))
+    for i in range(cap.iPresetLut):
+        desc = cap.pPresetLutDesc[i]
+        print("{}: {}".format(desc.iIndex, desc.GetDescription()))
+    for i in range(cap.iAeAlmSwDesc):
+        desc = cap.pAeAlmSwDesc[i]
+        print("{}: {}".format(desc.iIndex, desc.GetDescription()))
+    for i in range(cap.iAeAlmHdDesc):
+        desc = cap.pAeAlmHdDesc[i]
+        print("{}: {}".format(desc.iIndex, desc.GetDescription()))
+    for i in range(cap.iBayerDecAlmSwDesc):
+        desc = cap.pBayerDecAlmSwDesc[i]
+        print("{}: {}".format(desc.iIndex, desc.GetDescription()))
+    for i in range(cap.iBayerDecAlmHdDesc):
+        desc = cap.pBayerDecAlmHdDesc[i]
+        print("{}: {}".format(desc.iIndex, desc.GetDescription()))
+
+
 if __name__ == "__main__":
      import time
      device_list = get_devInfo_list()
@@ -216,12 +262,29 @@ if __name__ == "__main__":
 
          hCamera, cap, monoCamera, FrameBufferSize, pFrameBuffer = \
          initialize_cam(devInfo)
-         t0 = time.time()
-         n = 50
-         for i in range(n):
-            pFrameBuffer, FrameHead = get_one_frame(hCamera, pFrameBuffer)
-            frame = image_to_numpy(pFrameBuffer, FrameHead)
-            print(frame.shape) 
-         print(f"frame rate: {n / (time.time() - t0)}")
+
+         PrintCapbility(cap)
+
+         # #################### ops save-image ####################
+         # t0 = time.time()
+         # n = 50
+         # for i in range(n):
+         #    pFrameBuffer, FrameHead = get_one_frame(hCamera, pFrameBuffer)
+         #    frame = image_to_numpy(pFrameBuffer, FrameHead)
+         #    print(frame.shape) 
+         # print(f"frame rate: {n / (time.time() - t0)}")
+         # ##################################################
+
+         # #################### ops set ####################
+         parameters = get_camera_parameters(hCamera, cap)
+         print(parameters)
+
+         param = {"trigger_mode": 1, "triggerDelayTime": 20, "ae_state": 1}
+         set_camera_parameter(hCamera, **param)
+
+         parameters = get_camera_parameters(hCamera, cap)
+         print(parameters)
+
+         # ##################################################
 
          close_camera(hCamera, pFrameBuffer)

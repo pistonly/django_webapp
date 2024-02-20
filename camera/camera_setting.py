@@ -32,9 +32,9 @@ class CameraParameters(APIView):
             camera_res = initialize_cam(camera_dict[camera_id]['dev_info'])
             camera_dict[camera_id].update(dict(zip(["handle", "cap", "mono", "bs", "pb"],
                                                    camera_res)))
-            hCamera = camera_info.get('handle')
 
-        parameters = get_camera_parameters(hCamera)
+        parameters = get_camera_parameters(camera_dict[camera_id]['handle'],
+                                           camera_dict[camera_id]['cap'])
         print(parameters)
         if parameters:
             return Response(parameters)
