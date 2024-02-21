@@ -7,27 +7,102 @@ import random
 import cv2
 import base64
 import time
-from .mindvision.camera_utils import get_devInfo_list, get_one_frame, image_to_numpy, initialize_cam, close_camera
+from .mindvision.camera_utils import get_devInfo_list, get_one_frame, image_to_numpy, initialize_cam, close_camera, set_camera_parameter, get_camera_parameters, save_image
 import asyncio
 from PIL import Image
 import numpy as np
 import io
+from multiprocessing import Process, Pipe
+import time
+
+
+def camera_process(camera: dict, conn_in, conn_out):
+    while True:
+        if conn_in.poll():  # 检查管道是否有待读取的消息
+            cmd_dict = conn_in.recv()  # 接收命令
+            if "stop" in cmd_dict:
+                close_camera(camera['handle'], camera['pb'])
+                continue
+            if 'set' in cmd_dict:
+                set_camera_parameter(cmd_dict['set'])
+                continue
+            if 'get' in cmd_dict:
+                parameters = get_camera_parameters(camera['handle'], camera['cap'])
+                conn_out.send(parameters)
+                continue
+            if 'frame' in cmd_dict:
+                frame = image_to_numpy(*get_one_frame(camera['handle'], camera['pb']))
+                frame = frame[:, :, 0] if frame.shape[-1] == 1 else frame
+                frame = Image.fromarray(frame.astype(np.uint8))
+                buffer = io.BytesIO()
+                frame.save(buffer, format='JPEG')
+                conn_out.send(buffer)
+                continue
+            if 'grab' in cmd_dict:
+                PB, FH = get_one_frame(camera['handle'], camera['pb'])
+                save_image(camera['handle'], PB, FH, cmd_dict['path'], cmd_dict['quality'], img_type='bmp')
+                conn_out.send(1)
+        time.sleep(0.03)  # 模拟工作负载
+
+class cameraManager:
+    def __init__(self) -> None:
+        self.update_camera_list()
+        self.camera_process = {}
+        self.conn_in_dict, self.conn_out_dict = {}, {}
+
+    def update_camera_list(self):
+        self.camera_dict = {} if self.camera_dict is None else self.camera_dict
+
+        camera_list = get_devInfo_list()
+        camera_list = [{'dev_info': dev_info} for dev_info in camera_list]
+        camera_ids = [f'camera_{i}' for i in range(len(camera_list))]
+        for camera_id, camera_info in zip(camera_ids, camera_list):
+            if camera_id not in self.camera_dict:
+                camera_res = initialize_cam(camera_info['dev_info'])
+                camera_info.update(dict(zip(["handle", "cap", "mono", "bs", "pb"],
+                                            camera_res)))
+                self.camera_dict[camera_id] = camera_info
+
+    def start_camera_process(self):
+        for camera_id in self.camera_dict:
+            if camera_id not in self.camera_process:
+                parent_conn_in, child_conn_in = Pipe() 
+                parent_conn_out, child_conn_out = Pipe() 
+                self.camera_process[camera_id] = Process(target=camera_process,
+                                                         args=(self.camera_dict[camera_id],
+                                                               child_conn_in, parent_conn_out))
+                self.camera_process[camera_id].start()
+                self.conn_in_dict[camera_id] = parent_conn_in
+                self.conn_out_dict[camera_id] = child_conn_out
+
+    def close_all_cameras(self):
+        for _, conn_in in self.conn_in_dict.items():
+            conn_in.send({'stop': 1})
+        for _, p in self.camera_process.items():
+            p.join()
+
+    def get_one_frame(self, camera_id: str):
+        camera = self.camera_dict.get(camera_id)
+        if camera is None:
+            print(f"camera_id: {camera_id} is wrong")
+            return
+        self.conn_in_dict[camera_id].send({'frame': 1})
+        frame = self.conn_out_dict['camera_id'].recv()
+        return frame
+
+    def grab(self, camera_id: str, path: str, quality=100):
+        camera = self.camera_dict.get(camera_id)
+        if camera is None:
+            print(f"camera_id: {camera_id} is wrong")
+            return
+        self.conn_in_dict[camera_id].send({'grab': 1, 'path': path, 'quality': quality})
+        success = self.conn_out_dict['camera_id'].recv()
+        return success
+
+
+camera_manager = cameraManager()
 
 camera_lock = asyncio.Lock()
-camera_dict = {}
-
-
-def update_camera_list():
-    global camera_dict
-    camera_list = get_devInfo_list()
-    camera_list = [{'dev_info': dev_info} for dev_info in camera_list]
-    camera_ids = [f'camera_{i}' for i in range(len(camera_list))]
-    for camera_id, camera_info in zip(camera_ids, camera_list):
-        if camera_id not in camera_dict:
-            camera_dict[camera_id] = camera_info
-    return camera_dict
-
-update_camera_list()
 
 class CameraStreamConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -74,21 +149,5 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
             pass
 
     async def get_camera_frame(self, camera_id):
-        frame = None
-        if camera_id not in camera_dict:
-            print(f"{camera_id} not in camera_dict: {list(camera_dict.keys())}")
-            frame = np.random.randint(0, 255, (640, 640))
-        else:
-            if "handle" not in camera_dict[camera_id]:
-                camera_res = initialize_cam(camera_dict[camera_id]['dev_info'])
-                camera_dict[camera_id].update(dict(zip(["handle", "cap", "mono", "bs", "pb"],
-                                                       camera_res)))
-                self.camera_handle = camera_dict[camera_id]['handle']
-            frame = image_to_numpy(*get_one_frame(camera_dict[camera_id]['handle'],
-                                                  camera_dict[camera_id]['pb']))
-            if frame.shape[-1] == 1:
-                frame = frame[:, :, 0]
-        img = Image.fromarray(frame.astype('uint8'))
-        buffer = io.BytesIO()
-        img.save(buffer, format="JPEG")
+        buffer = camera_manager.get_one_frame(camera_id)
         return base64.b64encode(buffer.getvalue()).decode('utf-8')

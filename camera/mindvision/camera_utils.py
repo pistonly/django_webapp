@@ -1,5 +1,5 @@
-# from . import mvsdk
-import mvsdk
+from . import mvsdk
+# import mvsdk
 import numpy as np
 
 
