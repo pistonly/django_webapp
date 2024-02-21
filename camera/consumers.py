@@ -17,8 +17,10 @@ import time
 
 
 def camera_process(camera: dict, conn_in, conn_out):
+    empty_loop_start = time.time()
     while True:
         if conn_in.poll():  # 检查管道是否有待读取的消息
+            empty_loop_start = time.time()
             cmd_dict = conn_in.recv()  # 接收命令
             if "stop" in cmd_dict:
                 close_camera(camera['handle'], camera['pb'])
@@ -42,7 +44,11 @@ def camera_process(camera: dict, conn_in, conn_out):
                 PB, FH = get_one_frame(camera['handle'], camera['pb'])
                 save_image(camera['handle'], PB, FH, cmd_dict['path'], cmd_dict['quality'], img_type='bmp')
                 conn_out.send(1)
+                continue
         time.sleep(0.03)  # 模拟工作负载
+        if time.time() - empty_loop_start > 120:
+            close_camera(camera['handle'], camera['pb'])
+            break
 
 class cameraManager:
     def __init__(self) -> None:
