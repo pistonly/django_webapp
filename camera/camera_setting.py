@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .mindvision.camera_utils import get_camera_parameters, set_camera_parameter, initialize_cam
-from .consumers import camera_dict
+from .consumers import camera_manager
 import re
 
 
@@ -20,40 +20,19 @@ def get_resolution_from_text(content):
 class CameraParameters(APIView):
     def get(self, request):
         camera_id = request.query_params.get("camera_id")
-        camera_info = camera_dict.get(camera_id)
+        success, camera_info = camera_manager.get_camera_info(camera_id)
+        print(camera_info)
 
-        # get gamma range
-
-        if not camera_info:
-            return Response({"error": f"Camera: {camera_id} not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        hCamera = camera_info.get('handle')
-        if not hCamera:
-            camera_res = initialize_cam(camera_dict[camera_id]['dev_info'])
-            camera_dict[camera_id].update(dict(zip(["handle", "cap", "mono", "bs", "pb"],
-                                                   camera_res)))
-
-        parameters = get_camera_parameters(camera_dict[camera_id]['handle'],
-                                           camera_dict[camera_id]['cap'])
-        print(parameters)
-        if parameters:
-            return Response(parameters)
+        if not success:
+            return Response({"error": camera_info}, status=status.HTTP_404_NOT_FOUND)
         else:
-            return Response({"error": "get parameter error!"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(camera_info)
 
     def post(self, request):
         data = dict(request.data)
         camera_id = data.get("camera_id")
         if not camera_id:
             return Response({"error": f"Camera: {camera_id} not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        camera_info = camera_dict.get(camera_id[0])
-
-        if not camera_info:
-            return Response({"error": f"Camera: {camera_id} not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        hCamera = camera_info.get('handle')
-
         if 'resolution' in data:
             ret, (w, h) = get_resolution_from_text(data['resolution'][0])
             if ret:
@@ -61,8 +40,10 @@ class CameraParameters(APIView):
             else:
                 return Response({"error": f"resoluton format error!"}, status=status.HTTP_404_NOT_FOUND)
 
-
-        if set_camera_parameter(hCamera, **data):
+        success, camera_info = camera_manager.set_camera(camera_id, data)
+        print(camera_info)
+        if success:
             return Response({"success": "Parameter updated"})
         else:
             return Response({"error": "Failed to update parameter"}, status=status.HTTP_400_BAD_REQUEST)
+

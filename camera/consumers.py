@@ -2,9 +2,6 @@
 from channels.generic.websocket import AsyncWebsocketConsumer
 import asyncio
 import json
-from pathlib import Path
-import random
-import cv2
 import base64
 import time
 from .mindvision.camera_utils import get_devInfo_list, get_one_frame, image_to_numpy, initialize_cam, close_camera, set_camera_parameter, get_camera_parameters, save_image
@@ -12,12 +9,23 @@ import asyncio
 from PIL import Image
 import numpy as np
 import io
-from multiprocessing import Process, Pipe
+from multiprocessing import Process, Pipe, shared_memory
 import time
 
 
-def camera_process(camera: dict, conn_in, conn_out):
+def camera_process(camera_sn: str, conn_in, conn_out, shm_name):
     empty_loop_start = time.time()
+    camera_list = get_devInfo_list()
+    for camera_info in camera_list:
+        if camera_info.acSn.decode('utf8') == camera_sn:
+            camera_res = initialize_cam(camera_info)
+            camera = dict(zip(["handle", "cap", "mono", "bs", "pb"],
+                              camera_res))
+            
+            existing_shm = shared_memory.SharedMemory(name=shm_name)
+            frame_buffer = np.ndarray((camera['bs'], ), dtype=np.uint8, buffer=existing_shm.buf)
+            break
+
     while True:
         if conn_in.poll():  # 检查管道是否有待读取的消息
             empty_loop_start = time.time()
@@ -27,18 +35,20 @@ def camera_process(camera: dict, conn_in, conn_out):
                 continue
             if 'set' in cmd_dict:
                 set_camera_parameter(cmd_dict['set'])
+                parameters = get_camera_parameters(camera['handle'], camera['cap'])
+                conn_out.send(parameters)
                 continue
             if 'get' in cmd_dict:
                 parameters = get_camera_parameters(camera['handle'], camera['cap'])
                 conn_out.send(parameters)
                 continue
             if 'frame' in cmd_dict:
-                frame = image_to_numpy(*get_one_frame(camera['handle'], camera['pb']))
-                frame = frame[:, :, 0] if frame.shape[-1] == 1 else frame
-                frame = Image.fromarray(frame.astype(np.uint8))
-                buffer = io.BytesIO()
-                frame.save(buffer, format='JPEG')
-                conn_out.send(buffer)
+                pb, FH = get_one_frame(camera['handle'], camera['pb'])
+                frame = image_to_numpy(pb, FH)
+                h, w, c = frame.shape
+                frame = frame.flatten()
+                frame_buffer[0:len(frame)] = frame
+                conn_out.send((h, w, c))
                 continue
             if 'grab' in cmd_dict:
                 PB, FH = get_one_frame(camera['handle'], camera['pb'])
@@ -51,64 +61,85 @@ def camera_process(camera: dict, conn_in, conn_out):
             break
 
 class cameraManager:
+
     def __init__(self) -> None:
-        self.update_camera_list()
+        self.camera_dict = {}
         self.camera_process = {}
         self.conn_in_dict, self.conn_out_dict = {}, {}
 
     def update_camera_list(self):
-        self.camera_dict = {} if self.camera_dict is None else self.camera_dict
 
         camera_list = get_devInfo_list()
-        camera_list = [{'dev_info': dev_info} for dev_info in camera_list]
-        camera_ids = [f'camera_{i}' for i in range(len(camera_list))]
-        for camera_id, camera_info in zip(camera_ids, camera_list):
-            if camera_id not in self.camera_dict:
-                camera_res = initialize_cam(camera_info['dev_info'])
-                camera_info.update(dict(zip(["handle", "cap", "mono", "bs", "pb"],
-                                            camera_res)))
-                self.camera_dict[camera_id] = camera_info
+        for camera_info in camera_list:
+            sn = camera_info.acSn.decode('utf8')
+            name = camera_info.acFriendlyName.decode('utf8')
+            if sn not in self.camera_dict:
+                self.camera_dict[sn] = {'name': name}
+                bs = 3000 * 3000 * 3
+                self.shm = shm = shared_memory.SharedMemory(create=True, size=bs)
+                print(f"shm name: {self.shm.name}")
+                self.camera_dict[sn]['buffer'] = np.ndarray((bs, ), dtype=np.uint8, buffer=shm.buf)
 
-    def start_camera_process(self):
-        for camera_id in self.camera_dict:
-            if camera_id not in self.camera_process:
+                # start process
                 parent_conn_in, child_conn_in = Pipe() 
                 parent_conn_out, child_conn_out = Pipe() 
-                self.camera_process[camera_id] = Process(target=camera_process,
-                                                         args=(self.camera_dict[camera_id],
-                                                               child_conn_in, parent_conn_out))
-                self.camera_process[camera_id].start()
-                self.conn_in_dict[camera_id] = parent_conn_in
-                self.conn_out_dict[camera_id] = child_conn_out
+                p = Process(target=camera_process,
+                            args=(sn, child_conn_in, parent_conn_out, self.shm.name))
+                p.start()
+                self.camera_dict[sn].update({'process': p, 'conn_in': parent_conn_in,
+                                             'conn_out': child_conn_out})
 
     def close_all_cameras(self):
-        for _, conn_in in self.conn_in_dict.items():
-            conn_in.send({'stop': 1})
-        for _, p in self.camera_process.items():
-            p.join()
+        for _, camera_i in self.camera_dict.items():
+            camera_i['conn_in'].send({'stop': 1})
+            camera_i['process'].join()
 
     def get_one_frame(self, camera_id: str):
         camera = self.camera_dict.get(camera_id)
         if camera is None:
             print(f"camera_id: {camera_id} is wrong")
             return
-        self.conn_in_dict[camera_id].send({'frame': 1})
-        frame = self.conn_out_dict['camera_id'].recv()
-        return frame
+        camera['conn_in'].send({'frame': 1})
+        h, w, c = camera['conn_out'].recv()
+
+        frame = camera['buffer'][:(h * w * c)].reshape(h, w, c)
+        frame = frame[:, :, 0] if frame.shape[-1] == 1 else frame
+        frame = Image.fromarray(frame.astype(np.uint8))
+        buffer = io.BytesIO()
+        frame.save(buffer, format='JPEG')
+        return buffer
 
     def grab(self, camera_id: str, path: str, quality=100):
         camera = self.camera_dict.get(camera_id)
         if camera is None:
             print(f"camera_id: {camera_id} is wrong")
             return
-        self.conn_in_dict[camera_id].send({'grab': 1, 'path': path, 'quality': quality})
-        success = self.conn_out_dict['camera_id'].recv()
+        camera['conn_in'].send({'grab': 1, 'path': path, 'quality': quality})
+        success = camera['conn_out'].recv()
         return success
+
+    def get_camera_info(self, camera_id: str):
+        camera = self.camera_dict.get(camera_id)
+        if camera is None:
+            return False, f"camera_id: {camera_id} is wrong"
+
+        camera['conn_in'].send({"get": 1})
+        camera_info = camera['conn_out'].recv()
+        return True, camera_info
+
+    def set_camera(self, camera_id: str, parameters: dict):
+        camera = self.camera_dict.get(camera_id)
+        if camera is None:
+            return False, f"camera_id: {camera_id} is wrong"
+
+        camera['conn_in'].send({"set": parameters})
+        camera_info = camera['conn_out'].recv()
+        return True, camera_info
+
 
 
 camera_manager = cameraManager()
 
-camera_lock = asyncio.Lock()
 
 class CameraStreamConsumer(AsyncWebsocketConsumer):
     async def connect(self):

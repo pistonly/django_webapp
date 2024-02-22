@@ -34,7 +34,7 @@ def camera_grab(request):
     quality = request.data.get("quality", 100)
     directory = Path(settings.MEDIA_ROOT) / 'grab' / camera_id
     directory.mkdir(parents=True, exist_ok=True)
-    img_path = directory / f"{datetime.now().strftime('%y%m%d%H%M%S')}.bmp"
+    img_path = str(directory / f"{datetime.now().strftime('%y%m%d%H%M%S')}.bmp")
     success = camera_manager.grab(camera_id, img_path, quality)
     if success:
         return Response({"message": "save image success"})
