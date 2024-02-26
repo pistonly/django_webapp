@@ -4,7 +4,7 @@ import asyncio
 import json
 import base64
 import time
-from .mindvision.camera_utils import get_devInfo_list, get_one_frame, image_to_numpy, initialize_cam, close_camera, set_camera_parameter, get_camera_parameters, save_image
+from .mindvision.camera_utils import get_devInfo_list, get_one_frame, image_to_numpy, initialize_cam, close_camera, set_camera_parameter, get_camera_parameters, save_image, softTrigger
 import asyncio
 from PIL import Image
 import numpy as np
@@ -52,6 +52,10 @@ def camera_process(camera_sn: str, conn_in, conn_out, shm_name):
                     frame_buffer[0:len(frame)] = frame
                     conn_out.send((h, w, c))
                     continue
+                if 'trigger' in cmd_dict:
+                    error_code = softTrigger(camera['handle'])
+                    conn_out.send(error_code)
+
                 if 'grab' in cmd_dict:
                     PB, FH = get_one_frame(camera['handle'], camera['pb'])
                     save_image(camera['handle'], PB, FH, cmd_dict['path'], cmd_dict['quality'], img_type='bmp')
@@ -123,6 +127,15 @@ class cameraManager:
         success = camera['conn_out'].recv()
         return True, success
 
+    def soft_trigger(self, camera_id: str):
+        camera = self.camera_dict.get(camera_id)
+        if camera is None:
+            return False, f"camera_id: {camera_id} is wrong"
+        camera['conn_in'].send({'trigger': 1})
+        err_code = camera['conn_out'].recv()
+        print(f"error code: {err_code}")
+        return True, err_code
+
     def get_camera_info(self, camera_id: str):
         camera = self.camera_dict.get(camera_id)
         if camera is None:
@@ -150,13 +163,38 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         await self.accept()
         print("connected")
+        self.camera_feed_task = None
 
     async def receive(self, text_data=None, bytes_data=None):
         # 这里可以根据需要处理接收到的数据
         print(f"received data: {text_data}, bytes: {bytes_data}")
         text_data_json = json.loads(text_data)
         self.camera_id = camera_id = text_data_json['camera_id']
-        self.camera_feed_task = asyncio.create_task(self.camera_feed(camera_id))
+        self.trigger_mode = text_data_json['trigger_mode']
+        if int(self.trigger_mode) == 0:
+            self.camera_feed_task = asyncio.create_task(self.camera_feed(camera_id))
+        elif int(self.trigger_mode) == 1:
+            if self.camera_feed_task:
+                # close task
+                self.camera_feed_task.cancel()
+                # 等待任务被取消，确保资源被适当清理
+                try:
+                    await self.camera_feed_task
+                except asyncio.CancelledError:
+                    print('error from disconnect')
+
+            # trigger
+            trigger_success, message = camera_manager.soft_trigger(camera_id)
+            if trigger_success:
+                success, buffer = camera_manager.get_one_frame(camera_id)
+                if not success:
+                    print("not success")
+                else:
+                    await self.send(text_data=json.dumps(
+                        {"frame": base64.b64encode(buffer.getvalue()).decode('utf-8')}))
+            else:
+                print(f"trigger failed: {message}")
+
 
     async def send_frame(self, frame):
         try:
@@ -184,12 +222,13 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
         # 取消之前创建的任务
-        self.camera_feed_task.cancel()
-        # 等待任务被取消，确保资源被适当清理
-        try:
-            await self.camera_feed_task
-        except asyncio.CancelledError:
-            print('error from disconnect')
+        if self.camera_feed_task:
+            self.camera_feed_task.cancel()
+            # 等待任务被取消，确保资源被适当清理
+            try:
+                await self.camera_feed_task
+            except asyncio.CancelledError:
+                print('error from disconnect')
 
     async def get_camera_frame(self, camera_id):
         success, buffer = camera_manager.get_one_frame(camera_id)

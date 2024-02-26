@@ -225,6 +225,7 @@
     var csrftoken = $("[name=csrfmiddlewaretoken]").val();
 
     var ws;
+    var trigger_mode = 0;
 
     function startPreview() {
         if (ws && ws.readyState === WebSocket.OPEN) {
@@ -238,7 +239,8 @@
         ws.onopen = function(e) {
             console.log("Connection established!");
             ws.send(JSON.stringify({
-                'camera_id': cameraId
+                'camera_id': cameraId,
+                'trigger_mode': trigger_mode,
             }));
         };
 
@@ -333,6 +335,7 @@
 
                 // Update trigger mode radios
                 $('input[name="trigger"][value="' + data.triggerMode + '"]').prop('checked', true);
+                trigger_mode = data.triggerMode;
                 $('#triggerDelayTime').val(data.triggerDelayTime);
                 $('#triggerCount').val(data.triggerCount);
 
@@ -460,13 +463,14 @@
                 // Hide the trigger button for other selections
                 $('#trigger-settings').show();
             }
+            trigger_mode = $(this).val();
             // setting
             $.ajax({
                 url: '/api/camera/parameters/',
                 type: 'POST',
                 data: {
                     camera_id: $('#select_camera').val(),
-                    triggerMode: $(this).val(),
+                    triggerMode: trigger_mode,
                 },
                 beforeSend: function(xhr) {
                     xhr.setRequestHeader("X-CSRFToken", csrftoken);
@@ -557,9 +561,16 @@
                 }
             });
         });
+
+        $('#trigger-btn').click(function(e) {
+            // 阻止<a>标签的默认行为
+            e.preventDefault();
+            ws.send(JSON.stringify({
+                'camera_id': $('#select_camera').val(),
+                'trigger_mode': trigger_mode,
+            }));
+        });
     });
-
-
 </script>
 
 {% endblock %}
