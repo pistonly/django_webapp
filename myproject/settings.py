@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "loginapp",
     "imageapp",
     "camera",
+    # "single_camera",
     "channels",
     "rest_framework",
 ]

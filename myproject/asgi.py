@@ -31,7 +31,8 @@ application = ProtocolTypeRouter(
     {
         "http": django_asgi_app,
         "websocket": AuthMiddlewareStack(
-            URLRouter(camera.routing.websocket_urlpatterns)
+            URLRouter(camera.routing.websocket_urlpatterns),
+
         ),
     }
 )

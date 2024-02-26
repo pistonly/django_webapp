@@ -115,25 +115,21 @@
                                 <h2>曝光设置</h2>
                                 <div class="row ml-2">
                                     <div class="col-auto form-check">
-                                        <input type="radio" name="exposure" value="auto" id="autoExposure" class="form-check-input" checked>
+                                        <input type="radio" name="ae_state" value="1" id="autoExposure" class="form-check-input" checked>
                                         <label class="form-check-label" for="autoExposure">自动曝光</label>
                                     </div>
                                     <div class="col-auto form-check">
-                                        <input type="radio" name="exposure" value="manual" id="manualExposure" class="form-check-input">
+                                        <input type="radio" name="ae_state" value="0" id="manualExposure" class="form-check-input">
                                         <label class="form-check-label" for="manualExposure">手动设置</label>
                                     </div>
                                 </div>
-                                <!-- Auto and manual exposure settings divs go here -->
+                                <!-- Auto and manual ae_state settings divs go here -->
                                 <div id="auto-exposure-settings" class="mt-2">
-                                    自动曝光目标数值：<input type="number" class="form-control" min="0" step="1" value="100">
-                                    自动算法选择：<select class="form-control">
-                                        <option value="algorithm1">算法1</option>
-                                        <option value="algorithm2">算法2</option>
-                                    </select>
+                                    自动曝光目标数值：<input type="number" class="form-control" id="ae_target" min="0" step="1" value="100">
                                 </div>
 
                                 <div class="input-group mb-3" style="display: none;" id="manual-exposure-settings">
-                                    <input type="number" class="form-control" id="manualExposureTime" placeholder="设置曝光时间" aria-label="Exposure Time" min="0" step="1" value="100">
+                                    <input type="number" class="form-control" id="manualExposureTime" placeholder="设置曝光时间" aria-label="ae_state Time" min="0" step="1" value="100">
                                     <div class="input-group-append">
                                         <span class="input-group-text">ms</span>
                                     </div>
@@ -161,8 +157,8 @@
 
                                 <div class="row ml-2" id="trigger-settings" style="display: none;">
                                     <div class="col">
-                                        <label for="trigger-delay">Delay (ms)</label>
-                                        <input type="number" class="form-control" id="trigger-delay" placeholder="Delay (ms)" value="1000">
+                                        <label for="triggerDelayTime">Delay (ms)</label>
+                                        <input type="number" class="form-control" id="triggerDelayTime" placeholder="Delay (ms)" value="1000">
                                     </div>
                                     <div class="col">
                                         <label for="trigger-count-input">Trigger Count</label>
@@ -224,20 +220,19 @@
 {% endblock %}
 
 {% block endscript %}
-<script type="text/javascript">
-    var csrftoken = jQuery("[name=csrfmiddlewaretoken]").val();
-</script>
 
 <script>
-    console.log("csrftoken");
-    console.log(csrftoken);
+    var csrftoken = $("[name=csrfmiddlewaretoken]").val();
 
-    var img = document.getElementById("camera-image");
     var ws;
 
     function startPreview() {
-        var cameraId = document.getElementById("select_camera").value;
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            console.log("WebSocket is already connected.");
+            return; // Exit the function to prevent a new connection
+        }
 
+        var cameraId = $("#select_camera").val();
         ws = new WebSocket("ws://" + window.location.host + "/ws/camera/");
 
         ws.onopen = function(e) {
@@ -249,7 +244,7 @@
 
         ws.onmessage = function(e) {
             var data = JSON.parse(e.data);
-            document.getElementById("camera-image").src = "data:image/jpeg;base64," + data.frame;
+            $("#camera-image").attr("src", "data:image/jpeg;base64," + data.frame);
         };
 
         ws.onerror = function(e) {
@@ -262,15 +257,18 @@
     }
 
     function stopPreview() {
-        ws.close(1000, "stop preview.");
+        if (ws) {
+            ws.close(1000, "stop preview.");
+        }
     }
 
 
     function saveImg() {
         console.log("saveImg");
-        const camera_grap_url = document.getElementById("camera-grab-url").getAttribute("data-url");
+        const camera_grab_url = $("#camera-grab-url").data("url");
+        console.log(camera_grab_url);
         $.ajax({
-            url: camera_grap_url,
+            url: camera_grab_url,
             type: 'POST',
             data: {
                 camera_id: $('#select_camera').val()
@@ -285,33 +283,37 @@
     }
 
     function getCameraList() {
-        // 使用fetch API从后端异步获取相机列表
-        const url = document.getElementById("camera-list-url").getAttribute("data-url");
-        return fetch(url) // 注意这里返回fetch的Promise
-            .then(response => response.json())
-            .then(data => {
-                const cameras = data.cameras; // 假设后端返回的数据格式是 { cameras: ['camera0', 'camera1'] }
-                const selectCamera = document.getElementById("select_camera");
+        // Use jQuery to get the URL from data attribute
+        const url = $("#camera-list-url").data("url");
 
-                // 清空现有的选项
-                selectCamera.innerHTML = '';
+        // Use jQuery's ajax method to fetch data
+        $.ajax({
+            url: url,
+            type: 'GET',
+            dataType: 'json',
+            success: function(data) {
+                const cameras = data.cameras; // Assuming the format is { cameras: ['camera0', 'camera1'] }
+                const selectCamera = $("#select_camera");
 
-                // 为每个相机创建一个新的<option>元素，并添加到<select>中
-                cameras.forEach(camera => {
-                    const option = document.createElement("option");
-                    option.value = camera;
-                    option.text = camera;
-                    selectCamera.appendChild(option);
+                // Clear existing options using jQuery
+                selectCamera.empty();
+
+                // Add new options for each camera
+                cameras.forEach(function(camera) {
+                    selectCamera.append($('<option></option>').val(camera).text(camera));
                 });
 
-                // 默认选择第一个相机
+                // Default to the first camera, if available
                 if (cameras.length > 0) {
-                    selectCamera.value = cameras[0];
+                    selectCamera.val(cameras[0]);
                 }
-            })
-            .catch(error => {
+                // 
+                getCameraParameters();
+            },
+            error: function(xhr, status, error) {
                 console.error('Error fetching camera list:', error);
-            });
+            }
+        });
     }
 
 
@@ -326,35 +328,105 @@
             success: function(data) {
                 // 处理数据...
                 console.log(data);
+                // Update resolution input
+                $('#resolution-input').val(data.resolution.w + 'x' + data.resolution.h);
+
+                // Update trigger mode radios
+                $('input[name="trigger"][value="' + data.triggerMode + '"]').prop('checked', true);
+                $('#triggerDelayTime').val(data.triggerDelayTime);
+                $('#triggerCount').val(data.triggerCount);
+
+                // Update ae_state time
+                $('input[name="ae_state"][value="' + data.ae_state + '"]').prop('checked', true);
+                $('#manualExposureTime').val(data.exposureTime);
+                $('#ae_target').attr('min', data.ae_target_range[0])
+                    .attr('max', data.ae_target_range[1])
+                    .val(data.ae_target)
+
+                // Update gamma and contrast values and ranges
+                $('#gamma-value').text(data.lut_gamma);
+                $('#gamma-range').attr('min', data.lut_gamma_range[0])
+                    .attr('max', data.lut_gamma_range[1])
+                    .val(data.lut_gamma);
+
+                $('#contrast-value').text(data.lut_contrast);
+                $('#contrast-range').attr('min', data.lut_contrast_range[0])
+                    .attr('max', data.lut_contrast_range[1])
+                    .val(data.lut_contrast);
+
             }
         });
     }
-
-    function onloadfunc() {
-        getCameraList().then(() => {
-            // 绑定change事件监听器到select_camera元素
-            $('#select_camera').change(getCameraParameters);
-            // 手动触发一次getCameraParameters以加载初始相机的参数
-            getCameraParameters();
-        });
-    }
-
-    window.onload = onloadfunc;
 
     $(document).ready(function() {
-        // Listen for changes on the exposure radio buttons
-        $('input[name="exposure"]').change(function() {
-            // Check if the auto exposure is selected
+
+        $('#select_camera').change(getCameraParameters);
+
+        // Listen for changes on the ae_state radio buttons
+        $('input[name="ae_state"]').change(function() {
+            // Check if the auto ae_state is selected
             if ($('#autoExposure').is(':checked')) {
-                $('#auto-exposure-settings').show(); // Show auto exposure settings
-                $('#manual-exposure-settings').hide(); // Hide manual exposure settings
+                $('#auto-exposure-settings').show(); // Show auto ae_state settings
+                $('#manual-exposure-settings').hide(); // Hide manual ae_state settings
             } else if ($('#manualExposure').is(':checked')) {
-                $('#auto-exposure-settings').hide(); // Hide auto exposure settings
-                $('#manual-exposure-settings').show(); // Show manual exposure settings
+                $('#auto-exposure-settings').hide(); // Hide auto ae_state settings
+                $('#manual-exposure-settings').show(); // Show manual ae_state settings
             }
+            // setting
+            var exposureMode = $(this).val();
+            $.ajax({
+                url: '/api/camera/parameters/',
+                type: 'POST',
+                data: {
+                    camera_id: $('#select_camera').val(),
+                    ae_state: exposureMode,
+                },
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
+                success: function(response) {
+                    // 成功时的处理，例如显示一个消息
+                    console.log('ae_state mode changed to: ' + exposureMode);
+                    // 也可以在页面上显示一些反馈
+                    $('#status').text('ae_state mode changed to: ' + exposureMode);
+                },
+                error: function(xhr, status, error) {
+                    // 错误处理
+                    console.error('An error occurred: ' + error);
+                    $('#status').text('Error changing ae_state mode.');
+                }
+            });
         });
 
-        // exposure
+        // update camera list
+        getCameraList();
+
+        $('#manualExposureTime').change(function() {
+            $.ajax({
+                url: '/api/camera/parameters/',
+                type: 'POST',
+                data: {
+                    camera_id: $('#select_camera').val(),
+                    exposureTime: $('#manualExposureTime').val(),
+                },
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
+                success: function(response) {
+                    // 成功时的处理，例如显示一个消息
+                    console.log('exposure time changed');
+                    // 也可以在页面上显示一些反馈
+                    $('#status').text('exposure time changed');
+                },
+                error: function(xhr, status, error) {
+                    // 错误处理
+                    console.error('An error occurred: ' + error);
+                    $('#status').text('Error changing exposure time.');
+                }
+            });
+        });
+
+        // resolution
         $('.resolution-option').click(function(e) {
             // 阻止<a>标签的默认行为
             e.preventDefault();
@@ -388,6 +460,57 @@
                 // Hide the trigger button for other selections
                 $('#trigger-settings').show();
             }
+            // setting
+            $.ajax({
+                url: '/api/camera/parameters/',
+                type: 'POST',
+                data: {
+                    camera_id: $('#select_camera').val(),
+                    triggerMode: $(this).val(),
+                },
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
+                success: function(data) {
+                    console.log("triggerMode setting success");
+                }
+            });
+        });
+
+        $('#triggerDelayTime').change(function() {
+            // setting
+            $.ajax({
+                url: '/api/camera/parameters/',
+                type: 'POST',
+                data: {
+                    camera_id: $('#select_camera').val(),
+                    triggerDelayTime: $(this).val(),
+                },
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
+                success: function(data) {
+                    console.log("triggerDelayTime setting success");
+                }
+            });
+        });
+
+        $('#triggerCount').change(function() {
+            // setting
+            $.ajax({
+                url: '/api/camera/parameters/',
+                type: 'POST',
+                data: {
+                    camera_id: $('#select_camera').val(),
+                    triggerCount: $(this).val(),
+                },
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
+                success: function(data) {
+                    console.log("triggerDelayTime setting success");
+                }
+            });
         });
 
         // lut mapping
@@ -401,46 +524,7 @@
 
     });
 
-    $('#gamma-range').on('input', function() {
-        $('#gamma-value').text($(this).val());
-    });
 
-    $('#contrast-range').on('input', function() {
-        $('#contrast-value').text($(this).val());
-    });
-
-    $('#customInput').click(function(event) {
-        event.preventDefault(); // 阻止<a>标签的默认行为
-        var selectedOption = $(this).val(); // 获取选中项的文本
-        $('#selectedValue').text('Current Value: ' + selectedOption); // 更新<span>元素的文本以显示选中的值
-    });
-
-    $('input[type="radio"][name="exposure"]').change(function() {
-        var exposureMode = $(this).val();
-        // 使用 jQuery Ajax 向后端发送数据
-        $.ajax({
-            url: '/api/camera/parameters/',
-            type: 'POST',
-            data: {
-                camera_id: $('#select_camera').val(),
-                ae_state: exposureMode
-            },
-            beforeSend: function(xhr) {
-                xhr.setRequestHeader("X-CSRFToken", csrftoken);
-            },
-            success: function(response) {
-                // 成功时的处理，例如显示一个消息
-                console.log('Exposure mode changed to: ' + exposureMode);
-                // 也可以在页面上显示一些反馈
-                $('#status').text('Exposure mode changed to: ' + exposureMode);
-            },
-            error: function(xhr, status, error) {
-                // 错误处理
-                console.error('An error occurred: ' + error);
-                $('#status').text('Error changing exposure mode.');
-            }
-        });
-    });
 </script>
 
 {% endblock %}

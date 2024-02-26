@@ -36,10 +36,16 @@ def initialize_cam(DevInfo: mvsdk.tSdkCameraDevInfo):
 
 
 def get_one_frame(hCamera, pFrameBuffer):
-    pRawData, FrameHead = mvsdk.CameraGetImageBuffer(hCamera, 2000)
-    mvsdk.CameraImageProcess(hCamera, pRawData, pFrameBuffer, FrameHead)
-    mvsdk.CameraReleaseImageBuffer(hCamera, pRawData)
-    return pFrameBuffer, FrameHead
+    try:
+        pRawData, FrameHead = mvsdk.CameraGetImageBuffer(hCamera, 2000)
+        mvsdk.CameraImageProcess(hCamera, pRawData, pFrameBuffer, FrameHead)
+        mvsdk.CameraReleaseImageBuffer(hCamera, pRawData)
+        return pFrameBuffer, FrameHead
+    except:
+        return None, None
+
+def softTrigger(hCamera):
+    return mvsdk.CameraSoftTrigger(hCamera)
 
 def image_to_numpy(pFrameBuffer, FrameHead):
     frame_data = (mvsdk.c_ubyte * FrameHead.uBytes).from_address(pFrameBuffer)
@@ -150,6 +156,7 @@ def get_camera_parameters(hCamera, cap):
 
 
 def set_camera_parameter(hCamera, **kwargs):
+    print(kwargs)
     # set resolution
     if "resolution" in kwargs:
         resolution = mvsdk.tSdkImageResolution()
@@ -158,8 +165,8 @@ def set_camera_parameter(hCamera, **kwargs):
         mvsdk.CameraSetImageResolution(hCamera, resolution)
 
     # -------------------- toggle mode --------------------
-    if "trigger_mode" in kwargs:
-        mvsdk.CameraSetTriggerMode(hCamera, int(kwargs['trigger_mode']))
+    if "triggerMode" in kwargs:
+        mvsdk.CameraSetTriggerMode(hCamera, int(kwargs['triggerMode']))
 
     if "triggerDelayTime" in kwargs:
         mvsdk.CameraSetTriggerDelayTime(hCamera, int(kwargs['triggerDelayTime']))
@@ -190,8 +197,8 @@ def set_camera_parameter(hCamera, **kwargs):
     if 'analogGain' in kwargs:
         mvsdk.CameraSetAnalogGain(hCamera, kwargs['analogGain'])
 
-    if "expose" in kwargs:
-        mvsdk.CameraSetExposureTime(hCamera, kwargs['expose'])
+    if "exposureTime" in kwargs:
+        mvsdk.CameraSetExposureTime(hCamera, int(kwargs['exposureTime']))
 
     # -------------------- isp --------------------
     if 'h_mirror' in kwargs:
@@ -203,9 +210,9 @@ def set_camera_parameter(hCamera, **kwargs):
 
     # -------------------- mapping table --------------------
     if 'lut_gamma' in kwargs:
-        mvsdk.CameraSetGamma(hCamera, kwargs['lut_gamma'])
+        mvsdk.CameraSetGamma(hCamera, float(kwargs['lut_gamma']))
     if 'lut_contrast' in kwargs:
-        mvsdk.CameraSetContrast(hCamera, kwargs['lut_contrast'])
+        mvsdk.CameraSetContrast(hCamera, float(kwargs['lut_contrast']))
 
     # -------------------- snap --------------------
     if 'snap_resolution' in kwargs:

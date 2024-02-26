@@ -9,6 +9,7 @@ import asyncio
 from PIL import Image
 import numpy as np
 import io
+import cv2
 from multiprocessing import Process, Pipe, shared_memory
 import time
 
@@ -34,7 +35,8 @@ def camera_process(camera_sn: str, conn_in, conn_out, shm_name):
                 close_camera(camera['handle'], camera['pb'])
                 continue
             if 'set' in cmd_dict:
-                set_camera_parameter(cmd_dict['set'])
+                print(cmd_dict)
+                set_camera_parameter(camera['handle'], **cmd_dict['set'])
                 parameters = get_camera_parameters(camera['handle'], camera['cap'])
                 conn_out.send(parameters)
                 continue
@@ -77,7 +79,6 @@ class cameraManager:
                 self.camera_dict[sn] = {'name': name}
                 bs = 3000 * 3000 * 3
                 self.shm = shm = shared_memory.SharedMemory(create=True, size=bs)
-                print(f"shm name: {self.shm.name}")
                 self.camera_dict[sn]['buffer'] = np.ndarray((bs, ), dtype=np.uint8, buffer=shm.buf)
 
                 # start process
@@ -97,8 +98,7 @@ class cameraManager:
     def get_one_frame(self, camera_id: str):
         camera = self.camera_dict.get(camera_id)
         if camera is None:
-            print(f"camera_id: {camera_id} is wrong")
-            return
+            return False, f"camera_id: {camera_id} is wrong"
         camera['conn_in'].send({'frame': 1})
         h, w, c = camera['conn_out'].recv()
 
@@ -107,16 +107,15 @@ class cameraManager:
         frame = Image.fromarray(frame.astype(np.uint8))
         buffer = io.BytesIO()
         frame.save(buffer, format='JPEG')
-        return buffer
+        return True, buffer
 
     def grab(self, camera_id: str, path: str, quality=100):
         camera = self.camera_dict.get(camera_id)
         if camera is None:
-            print(f"camera_id: {camera_id} is wrong")
-            return
+            return False, f"camera_id: {camera_id} is wrong"
         camera['conn_in'].send({'grab': 1, 'path': path, 'quality': quality})
         success = camera['conn_out'].recv()
-        return success
+        return True, success
 
     def get_camera_info(self, camera_id: str):
         camera = self.camera_dict.get(camera_id)
@@ -157,23 +156,24 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
         try:
             await self.send(text_data=json.dumps({"frame": frame}))
         except:
-            print("camera feed cancelledError")
-            pass
+            print("send frame error")
 
     async def camera_feed(self, camera_id):
         try:
             frame_num = 0
             t0 = time.time()
             while True:
+                # t0_ = time.time()
                 frame = await self.get_camera_frame(camera_id)  # 假设这个方法获取最新的相机帧
+                # print(f"get frame cost: {time.time() - t0_}")
                 await self.send_frame(frame)  # 调用send_frame发送图像数据
                 if frame_num % 100 == 99:
                     print(f"frame rate: {100 / (time.time() - t0)}")
                     t0 = time.time()
                 frame_num += 1
-                await asyncio.sleep(0.01)  # 模拟等待时间，这里假设是10帧/秒
+                await asyncio.sleep(0.08)  # 模拟等待时间，这里假设是10帧/秒
         except asyncio.CancelledError:
-            print("camera feed cancelledError")
+            print("camera feed cancelled")
             pass
 
     async def disconnect(self, close_code):
@@ -183,8 +183,14 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
         try:
             await self.camera_feed_task
         except asyncio.CancelledError:
-            pass
+            print('error from disconnect')
 
     async def get_camera_frame(self, camera_id):
-        buffer = camera_manager.get_one_frame(camera_id)
+        success, buffer = camera_manager.get_one_frame(camera_id)
+        if not success:
+            frame = np.random.randint(0, 255, (640, 640), dtype=np.uint8)
+            frame = Image.fromarray(frame)
+            buffer = io.BytesIO()
+            frame.save(buffer, format='JPEG')
+
         return base64.b64encode(buffer.getvalue()).decode('utf-8')
