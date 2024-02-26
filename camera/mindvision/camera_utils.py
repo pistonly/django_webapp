@@ -210,9 +210,9 @@ def set_camera_parameter(hCamera, **kwargs):
 
     # -------------------- mapping table --------------------
     if 'lut_gamma' in kwargs:
-        mvsdk.CameraSetGamma(hCamera, float(kwargs['lut_gamma']))
+        mvsdk.CameraSetGamma(hCamera, int(float(kwargs['lut_gamma'])))
     if 'lut_contrast' in kwargs:
-        mvsdk.CameraSetContrast(hCamera, float(kwargs['lut_contrast']))
+        mvsdk.CameraSetContrast(hCamera, int(float(kwargs['lut_contrast'])))
 
     # -------------------- snap --------------------
     if 'snap_resolution' in kwargs:

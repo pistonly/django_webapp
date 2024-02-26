@@ -22,45 +22,47 @@ def camera_process(camera_sn: str, conn_in, conn_out, shm_name):
             camera_res = initialize_cam(camera_info)
             camera = dict(zip(["handle", "cap", "mono", "bs", "pb"],
                               camera_res))
-            
+
             existing_shm = shared_memory.SharedMemory(name=shm_name)
             frame_buffer = np.ndarray((camera['bs'], ), dtype=np.uint8, buffer=existing_shm.buf)
             break
 
-    while True:
-        if conn_in.poll():  # 检查管道是否有待读取的消息
-            empty_loop_start = time.time()
-            cmd_dict = conn_in.recv()  # 接收命令
-            if "stop" in cmd_dict:
-                close_camera(camera['handle'], camera['pb'])
-                continue
-            if 'set' in cmd_dict:
-                print(cmd_dict)
-                set_camera_parameter(camera['handle'], **cmd_dict['set'])
-                parameters = get_camera_parameters(camera['handle'], camera['cap'])
-                conn_out.send(parameters)
-                continue
-            if 'get' in cmd_dict:
-                parameters = get_camera_parameters(camera['handle'], camera['cap'])
-                conn_out.send(parameters)
-                continue
-            if 'frame' in cmd_dict:
-                pb, FH = get_one_frame(camera['handle'], camera['pb'])
-                frame = image_to_numpy(pb, FH)
-                h, w, c = frame.shape
-                frame = frame.flatten()
-                frame_buffer[0:len(frame)] = frame
-                conn_out.send((h, w, c))
-                continue
-            if 'grab' in cmd_dict:
-                PB, FH = get_one_frame(camera['handle'], camera['pb'])
-                save_image(camera['handle'], PB, FH, cmd_dict['path'], cmd_dict['quality'], img_type='bmp')
-                conn_out.send(1)
-                continue
-        time.sleep(0.03)  # 模拟工作负载
-        if time.time() - empty_loop_start > 120:
+    try:
+        while True:
+            if conn_in.poll():  # 检查管道是否有待读取的消息
+                cmd_dict = conn_in.recv()  # 接收命令
+                if "stop" in cmd_dict:
+                    close_camera(camera['handle'], camera['pb'])
+                    continue
+                if 'set' in cmd_dict:
+                    print(cmd_dict)
+                    set_camera_parameter(camera['handle'], **cmd_dict['set'])
+                    parameters = get_camera_parameters(camera['handle'], camera['cap'])
+                    conn_out.send(parameters)
+                    continue
+                if 'get' in cmd_dict:
+                    parameters = get_camera_parameters(camera['handle'], camera['cap'])
+                    conn_out.send(parameters)
+                    continue
+                if 'frame' in cmd_dict:
+                    pb, FH = get_one_frame(camera['handle'], camera['pb'])
+                    frame = image_to_numpy(pb, FH)
+                    h, w, c = frame.shape
+                    frame = frame.flatten()
+                    frame_buffer[0:len(frame)] = frame
+                    conn_out.send((h, w, c))
+                    continue
+                if 'grab' in cmd_dict:
+                    PB, FH = get_one_frame(camera['handle'], camera['pb'])
+                    save_image(camera['handle'], PB, FH, cmd_dict['path'], cmd_dict['quality'], img_type='bmp')
+                    conn_out.send(1)
+                    continue
+    except Exception as e:
+        print(f"camera process error: {e}")
+
+    finally:
+        if camera:
             close_camera(camera['handle'], camera['pb'])
-            break
 
 class cameraManager:
 
@@ -68,27 +70,31 @@ class cameraManager:
         self.camera_dict = {}
         self.camera_process = {}
         self.conn_in_dict, self.conn_out_dict = {}, {}
+        self.pipe_lock = asyncio.Lock()
+
+    def start_process(self, sn, name):
+        self.camera_dict[sn] = {'name': name}
+        bs = 3000 * 3000 * 3
+        self.shm = shm = shared_memory.SharedMemory(create=True, size=bs)
+        self.camera_dict[sn]['buffer'] = np.ndarray((bs, ), dtype=np.uint8, buffer=shm.buf)
+
+        # start process
+        parent_conn_in, child_conn_in = Pipe() 
+        parent_conn_out, child_conn_out = Pipe() 
+        p = Process(target=camera_process,
+                    args=(sn, child_conn_in, parent_conn_out, self.shm.name))
+        p.start()
+        self.camera_dict[sn].update({'process': p, 'conn_in': parent_conn_in,
+                                     'conn_out': child_conn_out})
+
 
     def update_camera_list(self):
-
         camera_list = get_devInfo_list()
         for camera_info in camera_list:
             sn = camera_info.acSn.decode('utf8')
             name = camera_info.acFriendlyName.decode('utf8')
-            if sn not in self.camera_dict:
-                self.camera_dict[sn] = {'name': name}
-                bs = 3000 * 3000 * 3
-                self.shm = shm = shared_memory.SharedMemory(create=True, size=bs)
-                self.camera_dict[sn]['buffer'] = np.ndarray((bs, ), dtype=np.uint8, buffer=shm.buf)
-
-                # start process
-                parent_conn_in, child_conn_in = Pipe() 
-                parent_conn_out, child_conn_out = Pipe() 
-                p = Process(target=camera_process,
-                            args=(sn, child_conn_in, parent_conn_out, self.shm.name))
-                p.start()
-                self.camera_dict[sn].update({'process': p, 'conn_in': parent_conn_in,
-                                             'conn_out': child_conn_out})
+            if sn not in self.camera_dict or (not self.camera_dict[sn]['process'].is_alive()):
+                self.start_process(sn, name)
 
     def close_all_cameras(self):
         for _, camera_i in self.camera_dict.items():

@@ -190,7 +190,7 @@
                                 <h2>Mapping Table Settings</h2>
                                 <div id="mapping-table-settings" class="mt-2">
                                     gamma：<span id="gamma-value">1.0</span>
-                                    <input type="range" class="custom-range" id="gamma-range" min="0.1" max="3.0" step="0.1" value="1.0">
+                                    <input type="range" class="custom-range" id="gamma-range" min="1" max="100" step="1" value="50">
 
                                     contrast： <span id="contrast-value">100</span>
                                     <input type="range" class="custom-range" id="contrast-range" min="0" max="200" step="1" value="100">
@@ -518,10 +518,45 @@
             $('#gamma-value').text($(this).val());
         });
 
+        $('#gamma-range').on('mouseup', function() {
+            // 发送数据到后端url1
+            $.ajax({
+                url: '/api/camera/parameters/',
+                type: 'POST',
+                data: {
+                    camera_id: $('#select_camera').val(),
+                    lut_gamma: $(this).val(),
+                },
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
+                success: function(data) {
+                    console.log("lut_gamma setting success");
+                }
+            });
+        });
+
         $('#contrast-range').on('input', function() {
             $('#contrast-value').text($(this).val());
         });
 
+        $('#contrast-range').on('mouseup', function() {
+            // 发送数据到后端url1
+            $.ajax({
+                url: '/api/camera/parameters/',
+                type: 'POST',
+                data: {
+                    camera_id: $('#select_camera').val(),
+                    lut_contrast: $(this).val(),
+                },
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                },
+                success: function(data) {
+                    console.log("contrast setting success");
+                }
+            });
+        });
     });
 
 
