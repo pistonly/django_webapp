@@ -1,0 +1,8 @@
+<h2>产品批号: {{ batch.batch_number }}</h2>
+<div class="gallery">
+    {% for photo in photos %}
+    <div class="photo">
+        <img src="{{ photo.get_absolute_url }}" alt="{{ photo.title }}">
+    </div>
+    {% endfor %}
+</div>

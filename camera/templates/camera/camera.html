@@ -79,24 +79,6 @@
         height: 100%;
     }
 
-    .wide-input .form-control {
-        min-width: 100px;
-        /* 根据需要调整这个值以确保可以放下5个数字 */
-        max-width: 110px;
-    }
-
-    /* 减小表格内部单元格的padding */
-    .compact-table td {
-        padding: 0.25rem;
-        /* 根据需要调整 */
-    }
-
-    /* 减小radio与表格之间的间距 */
-    .compact-row {
-        margin-bottom: 0;
-        /* 减小行间距 */
-    }
-
     /* 调整radio标签的外边距，让布局更紧凑 */
     .form-check {
         margin-bottom: 0;
@@ -200,7 +182,7 @@
                                 <div class="input-group mb-3" style="display: none;" id="manual-exposure-settings">
                                     <input type="number" class="form-control" id="manualExposureTime" placeholder="设置曝光时间" aria-label="ae_state Time" min="0" step="1" value="100">
                                     <div class="input-group-append">
-                                        <span class="input-group-text">ms</span>
+                                        <span class="input-group-text">us</span>
                                     </div>
                                 </div>
                             </div>

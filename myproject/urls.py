@@ -26,9 +26,11 @@ urlpatterns = [
     path("", include("loginapp.urls")),
     path("", include("imageapp.urls")),
     path("", include("camera.urls")),
+    path("", include("productionImages.urls")),
     # path("single_camera/", include("single_camera.urls")),
     path("logout/", LogoutView.as_view(next_page="login"), name="logout"),
     path("admin/", admin.site.urls),
+    path('photologue/', include('photologue.urls', namespace='photologue')),
 ]
 
 if settings.DEBUG:

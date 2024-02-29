@@ -38,12 +38,16 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sites",
     "loginapp",
     "imageapp",
     "camera",
     # "single_camera",
     "channels",
     "rest_framework",
+    "photologue",
+    "sortedm2m",
+    "productionImages",
 ]
 
 MIDDLEWARE = [
@@ -133,3 +137,5 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 ASGI_APPLICATION = "myproject.asgi.application"
+
+SITE_ID = 1

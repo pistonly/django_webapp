@@ -3,3 +3,4 @@ channels[daphne]
 opencv-python
 PILLOW
 djangorestframework
+django-photologue
