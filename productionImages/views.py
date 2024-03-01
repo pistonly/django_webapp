@@ -37,6 +37,7 @@ def upload_one_image(image_io, img_name, batch_number, mime_type='img/jpeg'):
 #     return render(request, 'gallery.html', {'batch': batch, 'photos': photos})
 
 def production_view(request):
+    
     return render(request, "productionImages/gallery.html")
 
 
@@ -98,3 +99,15 @@ def productionImages(request):
     urls = [{"url": photo.image.url, "thumbnail": photo.get_display_url(), "title": photo.title} for photo in photos]
     return Response(urls)
 
+
+@login_required
+@api_view(['GET'])
+def batchNumberSearch(request):
+    query = request.GET.get('term', '')
+    batches = ProductBatch.objects.filter(batch_number__icontains=query)
+    if not len(batches):
+        batches = ProductBatch.objects.all().order_by('-production_date')[:5]
+    results = [batch.batch_number for batch in batches]
+    print(results)
+
+    return Response(results)
