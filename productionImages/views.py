@@ -12,7 +12,7 @@ from django.contrib.auth.decorators import login_required
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.views.generic.list import ListView
-
+from django.contrib.auth.models import User
 
 
 def upload_one_image(image_io, img_name, batch_number, mime_type='img/jpeg'):
@@ -36,9 +36,13 @@ def upload_one_image(image_io, img_name, batch_number, mime_type='img/jpeg'):
 #     photos = batch.gallery.photos.all()
 #     return render(request, 'gallery.html', {'batch': batch, 'photos': photos})
 
+@login_required
 def production_view(request):
-    
-    return render(request, "productionImages/gallery.html")
+    # get latest production
+    user_name = request.user.username
+    data = {"user_name": user_name}
+    print(data)
+    return render(request, "productionImages/gallery.html", context=data)
 
 
 def camera_trigger_background(batch_number, stop_event):
@@ -94,10 +98,23 @@ def stop_camera_background(request):
 @login_required
 @api_view(['POST'])
 def productionImages(request):
-    latest_batch = ProductBatch.objects.latest("production_date")
-    photos = latest_batch.gallery.photos.all()
+    batch_number = request.data.get("batch_number")
+    if batch_number == "-1":
+        batch = ProductBatch.objects.latest("production_date")
+    else:
+        batch = ProductBatch.objects.get(batch_number=batch_number)
+    photos = batch.gallery.photos.all()
     urls = [{"url": photo.image.url, "thumbnail": photo.get_display_url(), "title": photo.title} for photo in photos]
     return Response(urls)
+
+@login_required
+@api_view(['POST'])
+def latest_product(request):
+    batch = ProductBatch.objects.latest("production_date")
+    photos = batch.gallery.photos.all()
+    urls = [{"url": photo.image.url, "thumbnail": photo.get_display_url(), "title": photo.title} for photo in photos]
+    data = {'batch_number': batch.batch_number, 'urls': urls}
+    return Response(data)
 
 
 @login_required
@@ -108,6 +125,6 @@ def batchNumberSearch(request):
     if not len(batches):
         batches = ProductBatch.objects.all().order_by('-production_date')[:5]
     results = [batch.batch_number for batch in batches]
-    print(results)
 
     return Response(results)
+

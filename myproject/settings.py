@@ -139,3 +139,4 @@ MEDIA_ROOT = BASE_DIR / "media"
 ASGI_APPLICATION = "myproject.asgi.application"
 
 SITE_ID = 1
+LOGIN_URL = 'login'

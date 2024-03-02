@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import JsonResponse
 from .consumers import camera_manager
 from datetime import datetime
@@ -11,8 +11,11 @@ from django.conf import settings
 from rest_framework.views import APIView
 import re
 
+def is_admin(user):
+    return user.is_superuser or user.is_staff
 
 @login_required
+@user_passes_test(is_admin)
 def camera_view(request):
     print("camera view")
     return render(request, "camera/camera.html")
