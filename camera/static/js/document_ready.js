@@ -107,6 +107,8 @@ $(document).ready(function() {
             $('#trigger-settings').hide();
             $('#start-preview').prop('disabled', false);
             $('#stop-preview').prop('disabled', false);
+            // stop ws
+            stopPreview();
         } else {
             // Hide the trigger button for other selections
             $('#trigger-settings').show();

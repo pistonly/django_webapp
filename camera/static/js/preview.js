@@ -27,11 +27,15 @@
         ws.onclose = function(e) {
             console.log("WebSocket closed");
         };
+        $('#start-preview').prop('disabled', true);
+        $('#stop-preview').prop('disabled', false);
     }
 
     function stopPreview() {
         if (ws) {
             ws.close(1000, "stop preview.");
+            $('#start-preview').prop('disabled', false);
+            $('#stop-preview').prop('disabled', true);
         }
     }
 

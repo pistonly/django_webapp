@@ -141,7 +141,7 @@
                         <div class="col-md-8">
 
                             <!-- Camera view -->
-                            <div id="imageContainer" class="image-container">
+                            <div id="imageContainer" class="image-container mb-2">
                                 <img id="camera-image" src="https://placehold.co/600x300" alt="Camera Stream" class="img-fluid rounded">
                                 <canvas id="roiCanvas" class="roi-canvas"></canvas>
                                 <div id="dragHandle" class="drag-handle"></div>
@@ -150,6 +150,13 @@
                                 <p>Coordinates: <span id="coords">0, 0</span></p>
                             </div>
 
+                            <!-- Save buttons -->
+                            <div class="row mb-2">
+                                <div class="col-md-12" id="preview-group">
+                                    <button type="button" class="btn btn-secondary" id="start-preview" onclick="startPreview()">预览</button>
+                                    <button type="button" class="btn btn-secondary" id="stop-preview" onclick="stopPreview()">停止</button>
+                                </div>
+                            </div>
                         </div>
                         <div class="col-md-4">
                             <!-- Controls -->
@@ -326,13 +333,6 @@
 
                         </div>
 
-                        <!-- Save buttons -->
-                        <div class="row">
-                            <div class="col-md-12" id="preview-group">
-                                <button type="button" class="btn btn-default" id="start-preview" onclick="startPreview()">预览</button>
-                                <button type="button" class="btn btn-secondary" id="stop-preview" onclick="stopPreview()">停止</button>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
