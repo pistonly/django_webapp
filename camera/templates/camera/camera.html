@@ -115,6 +115,11 @@
             <!-- 在这里添加一个隐藏的div来存储动态生成的URL -->
             <div id="camera-list-url" data-url="{% url 'camera_list' %}" style="display: none;"></div>
             <div id="camera-grab-url" data-url="{% url 'camera_grab' %}" style="display: none;"></div>
+            <div id="set-roi-url" data-url="{% url 'set_roi' %}" style="display: none;"></div>
+            <div id="save-configure-url" data-url="{% url 'save_configure' %}" style="display: none;"></div>
+            <div id="load-configure-url" data-url="{% url 'load_configure' %}" style="display: none;"></div>
+            <div id="reset-configure-url" data-url="{% url 'reset_configure' %}" style="display: none;"></div>
+
 
         </nav>
 
@@ -123,14 +128,14 @@
             <div class="py-2">
                 <div class="container-fluid">
                     <!-- Tabs -->
-                    <ul class="nav nav-tabs">
-                        <li class="nav-item">
-                            <a class="nav-link active" href="#">Conditions</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#">Profile Management</a>
-                        </li>
-                    </ul>
+                    <!-- <ul class="nav nav-tabs">
+                         <li class="nav-item">
+                         <a class="nav-link active" href="#">Conditions</a>
+                         </li>
+                         <li class="nav-item">
+                         <a class="nav-link" href="#">Profile Management</a>
+                         </li>
+                         </ul> -->
                     <!-- Camera view and controls -->
                     <div class="row">
                         <div class="col-md-8">
@@ -141,9 +146,8 @@
                                 <canvas id="roiCanvas" class="roi-canvas"></canvas>
                                 <div id="dragHandle" class="drag-handle"></div>
                             </div>
-                            <div id="infoPanel" class="info-panel">
+                            <div id="infoPanel" class="info-panel" style="display: none;">
                                 <p>Coordinates: <span id="coords">0, 0</span></p>
-                                <p>RGB: <span id="rgb">N/A</span></p>
                             </div>
 
                         </div>
@@ -255,18 +259,18 @@
                                         <div class="input-group">
                                             <div class="input-group-prepend">
                                                 <div class="input-group-text">
-                                                    <input type="checkbox" aria-label="Checkbox for following text input">
+                                                    <input type="checkbox" aria-label="Checkbox for following text input" id="check-roi-0">
                                                 </div>
                                             </div>
                                             <div class="input-group-prepend">
                                                 <span class="input-group-text" id="">ROI-1:</span>
                                             </div>
-                                            <input type="text" class="form-control" placeholder="x0" aria-label="roi-x0-0">
-                                            <input type="text" class="form-control" placeholder="y0" aria-label="roi-y0-0">
-                                            <input type="text" class="form-control" placeholder="x1" aria-label="roi-x1-0">
-                                            <input type="text" class="form-control" placeholder="y1" aria-label="roi-y1-0">
+                                            <input type="text" class="form-control" placeholder="x0" aria-label="roi-x0-0" id="roi-x0-0">
+                                            <input type="text" class="form-control" placeholder="y0" aria-label="roi-y0-0" id="roi-y0-0">
+                                            <input type="text" class="form-control" placeholder="x1" aria-label="roi-x1-0" id="roi-x1-0">
+                                            <input type="text" class="form-control" placeholder="y1" aria-label="roi-y1-0" id="roi-y1-0">
                                             <div class="input-group-prepend">
-                                                <button class="btn btn-outline-secondary" id="roi-button-0" type="button" onclick="ROIButtonText0()">设置</button>
+                                                <button class="btn btn-outline-secondary" id="roi-button-0" type="button">设置</button>
                                             </div>
                                         </div>
                                     </div>
@@ -275,18 +279,18 @@
                                         <div class="input-group">
                                             <div class="input-group-prepend">
                                                 <div class="input-group-text">
-                                                    <input type="checkbox" aria-label="Checkbox for following text input">
+                                                    <input type="checkbox" aria-label="Checkbox for following text input" id="check-roi-1">
                                                 </div>
                                             </div>
                                             <div class="input-group-prepend">
                                                 <span class="input-group-text" id="">ROI-2:</span>
                                             </div>
-                                            <input type="text" class="form-control" placeholder="x0" aria-label="roi-x0-1">
-                                            <input type="text" class="form-control" placeholder="y0" aria-label="roi-y0-1">
-                                            <input type="text" class="form-control" placeholder="x1" aria-label="roi-x1-1">
-                                            <input type="text" class="form-control" placeholder="y1" aria-label="roi-y1-1">
+                                            <input type="text" class="form-control" placeholder="x0" aria-label="roi-x0-1" id="roi-x0-1">
+                                            <input type="text" class="form-control" placeholder="y0" aria-label="roi-y0-1" id="roi-y0-1">
+                                            <input type="text" class="form-control" placeholder="x1" aria-label="roi-x1-1" id="roi-x1-1">
+                                            <input type="text" class="form-control" placeholder="y1" aria-label="roi-y1-1" id="roi-y1-1">
                                             <div class="input-group-prepend">
-                                                <button class="btn btn-outline-secondary" id="roi-button-1" type="button" onclick="ROIButtonText1()">设置</button>
+                                                <button class="btn btn-outline-secondary" id="roi-button-1" type="button">设置</button>
                                             </div>
                                         </div>
                                     </div>
@@ -309,10 +313,13 @@
                                         </div>
                                     </div>
                                     <div class="input-group-append">
-                                        <button class="btn btn-outline-secondary" type="button" onclick="">保存</button>
+                                        <button class="btn btn-outline-secondary" type="button" id="save-configure">保存</button>
                                     </div>
                                     <div class="input-group-append">
-                                        <button class="btn btn-outline-secondary" type="button" onclick="">重置</button>
+                                        <button class="btn btn-outline-secondary" type="button" id="load-configure">载入</button>
+                                    </div>
+                                    <div class="input-group-append">
+                                        <button class="btn btn-outline-secondary" type="button" id="reset-configure">重置</button>
                                     </div>
                                 </div>
                             </div>
@@ -321,11 +328,9 @@
 
                         <!-- Save buttons -->
                         <div class="row">
-                            <div class="col-md-12">
-                                <button type="button" class="btn btn-default" onclick="startPreview()">预览</button>
-                                <button type="button" class="btn btn-secondary" onclick="stopPreview()">停止</button>
-                                <button type="button" class="btn btn-primary" onclick="saveImg()">保存</button>
-                                <button type="button" class="btn btn-primary" onclick="getCameraParameters()">load</button>
+                            <div class="col-md-12" id="preview-group">
+                                <button type="button" class="btn btn-default" id="start-preview" onclick="startPreview()">预览</button>
+                                <button type="button" class="btn btn-secondary" id="stop-preview" onclick="stopPreview()">停止</button>
                             </div>
                         </div>
                     </div>
@@ -343,6 +348,10 @@
 
 <script>
     var csrftoken = $("[name=csrfmiddlewaretoken]").val();
+    var set_roi_url = $('#set-roi-url').data('url');
+    var save_configure_url = $('#save-configure-url').data('url');
+    var reset_configure_url = $('#reset-configure-url').data('url');
+    var load_configure_url = $('#load-configure-url').data('url');
 
     var ws;
     var trigger_mode = 0;

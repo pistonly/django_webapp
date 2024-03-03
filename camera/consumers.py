@@ -12,8 +12,10 @@ import io
 import cv2
 from multiprocessing import Process, Pipe, shared_memory
 import time
+from pathlib import Path
 
 
+current_dir = Path(__file__).resolve().parent
 def camera_process(camera_sn: str, conn_in, conn_out, shm_name):
     empty_loop_start = time.time()
     camera_list = get_devInfo_list()
@@ -53,8 +55,16 @@ def camera_process(camera_sn: str, conn_in, conn_out, shm_name):
                     conn_out.send((h, w, c))
                     continue
                 if 'trigger' in cmd_dict:
+                    # TODO:
                     error_code = softTrigger(camera['handle'])
-                    conn_out.send(error_code)
+                    # get one frame
+                    pb, FH = get_one_frame(camera['handle'], camera['pb'])
+                    frame = image_to_numpy(pb, FH)
+                    h, w, c = frame.shape
+                    frame = frame.flatten()
+                    frame_buffer[0:len(frame)] = frame
+                    conn_out.send((h, w, c))
+                    continue
 
                 if 'grab' in cmd_dict:
                     PB, FH = get_one_frame(camera['handle'], camera['pb'])
@@ -75,12 +85,39 @@ class cameraManager:
         self.camera_process = {}
         self.conn_in_dict, self.conn_out_dict = {}, {}
         self.pipe_lock = asyncio.Lock()
+        self.configure_dir = current_dir / 'configure'
+
+    def init_camera_configure(self, sn):
+        camera_config_dir = self.configure_dir / sn
+        camera_config_dir.mkdir(parents=True, exist_ok=True)
+        # 4 configures
+        for i in range(4):
+            config_f = camera_config_dir / f"configure_{i:03d}.json"
+            if not config_f.is_file():
+                with open(str(config_f), 'w') as f:
+                    pass
+
+        configures = [str(f) for f in camera_config_dir.iterdir() if f.with_suffix(".json")]
+        configures.sort()
+        # default config
+        success, default_configure = self.get_camera_info(sn)
+
+        self.camera_dict[sn].update({"configure_f": configures, 'default_config': default_configure})
+
+    def reset_configure(self, sn, config_f):
+        success, _ = self.save_configure(sn, config_f, self.camera_dict[sn]['default_config'])
+        if success:
+            return True, "reset OK"
+        else:
+            return False, "reset failed"
+
 
     def start_process(self, sn, name):
         self.camera_dict[sn] = {'name': name}
         bs = 3000 * 3000 * 3
         self.shm = shm = shared_memory.SharedMemory(create=True, size=bs)
         self.camera_dict[sn]['buffer'] = np.ndarray((bs, ), dtype=np.uint8, buffer=shm.buf)
+        self.camera_dict[sn]['roi'] = []
 
         # start process
         parent_conn_in, child_conn_in = Pipe() 
@@ -90,7 +127,35 @@ class cameraManager:
         p.start()
         self.camera_dict[sn].update({'process': p, 'conn_in': parent_conn_in,
                                      'conn_out': child_conn_out})
+        # confiugre
+        self.init_camera_configure(sn)
 
+    def save_configure(self, sn: str, config_f: str, config_dict = None):
+        if not config_f.startswith("configure_"):
+            config_f = f"configure_{config_f}"
+        config_f_path = self.configure_dir / sn / config_f
+        if config_dict is None:
+            success, config_dict = self.get_camera_info(sn)
+        else:
+            success = True
+
+        if success:
+            json.dump(config_dict, open(str(config_f_path, "w")))
+            return True, "saved success"
+        else:
+            return success, "save configure failed"
+
+    def load_configure(self, sn: str, config_f: str):
+        if not config_f.startswith("configure_"):
+            config_f = f"configure_{config_f}"
+        config_f_path = self.configure_dir / sn / config_f
+        if config_f_path.is_file():
+            config_dict = json.load(open(str(config_f_path, "r")))
+            success, message = self.set_camera(sn, config_dict)
+            self.camera_dict[sn].update({'roi': config_dict['roi']})
+            return success, message
+        else:
+            return False, f"{str(config_f_path)} is not file"
 
     def update_camera_list(self):
         camera_list = get_devInfo_list()
@@ -132,9 +197,20 @@ class cameraManager:
         if camera is None:
             return False, f"camera_id: {camera_id} is wrong"
         camera['conn_in'].send({'trigger': 1})
-        err_code = camera['conn_out'].recv()
-        print(f"error code: {err_code}")
-        return True, err_code
+        
+        h, w, c = camera['conn_out'].recv()
+        frame = camera['buffer'][:(h * w * c)].reshape(h, w, c)
+        frame = frame[:, :, 0] if frame.shape[-1] == 1 else frame
+        if len(camera['roi']):
+            mask = np.zeros(frame.shape[0:2], dtype=np.uint8)
+            for roi in camera['roi']:
+                x0, y0, x1, y1 = np.array(roi).astype(np.int32)
+                mask[y0:y1, x0:x1] = 1
+            frame[mask == 0] = 0
+        frame = Image.fromarray(frame.astype(np.uint8))
+        buffer = io.BytesIO()
+        frame.save(buffer, format='JPEG')
+        return True, buffer
 
     def get_camera_info(self, camera_id: str):
         camera = self.camera_dict.get(camera_id)
@@ -143,6 +219,7 @@ class cameraManager:
 
         camera['conn_in'].send({"get": 1})
         camera_info = camera['conn_out'].recv()
+        camera_info.update({"roi": camera['roi']})
         return True, camera_info
 
     def set_camera(self, camera_id: str, parameters: dict):
@@ -184,16 +261,12 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
                     print('error from disconnect')
 
             # trigger
-            trigger_success, message = camera_manager.soft_trigger(camera_id)
-            if trigger_success:
-                success, buffer = camera_manager.get_one_frame(camera_id)
-                if not success:
-                    print("not success")
-                else:
-                    await self.send(text_data=json.dumps(
-                        {"frame": base64.b64encode(buffer.getvalue()).decode('utf-8')}))
+            success, buffer = camera_manager.soft_trigger(camera_id)
+            if not success:
+                print("not success")
             else:
-                print(f"trigger failed: {message}")
+                await self.send(text_data=json.dumps(
+                    {"frame": base64.b64encode(buffer.getvalue()).decode('utf-8')}))
 
 
     async def send_frame(self, frame):

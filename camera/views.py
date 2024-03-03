@@ -47,6 +47,43 @@ def camera_grab(request):
         _status = status.HTTP_400_BAD_REQUEST
     return Response({"message": message}, status=_status)
 
+@login_required
+@api_view(['POST'])
+def save_configure(request):
+    camera_id = request.data.get("camera_id")
+    config_f = request.data.get("config_f")
+    success, message = camera_manager.save_configure(camera_id, config_f)
+    if success:
+        _status = status.HTTP_200_OK
+    else:
+        _status = status.HTTP_400_BAD_REQUEST
+    return Response({"message": message}, status=_status)
+
+@login_required
+@api_view(['POST'])
+def load_configure(request):
+    camera_id = request.data.get("camera_id")
+    config_f = request.data.get("config_f")
+    success, message = camera_manager.load_configure(camera_id, config_f)
+    if success:
+        _status = status.HTTP_200_OK
+    else:
+        _status = status.HTTP_400_BAD_REQUEST
+    return Response({"message": message}, status=_status)
+
+
+@login_required
+@api_view(['POST'])
+def reset_configure(request):
+    camera_id = request.data.get("camera_id")
+    config_f = request.data.get("config_f")
+    success, message = camera_manager.reset_configure(camera_id, config_f)
+    if success:
+        _status = status.HTTP_200_OK
+    else:
+        _status = status.HTTP_400_BAD_REQUEST
+    return Response({"message": message}, status=_status)
+
 
 def get_resolution_from_text(content):
     pattern = r"(\d+)x(\d+)"
@@ -88,3 +125,13 @@ class CameraParameters(APIView):
         else:
             return Response({"error": "Failed to update parameter"}, status=status.HTTP_400_BAD_REQUEST)
 
+@login_required
+@api_view(['POST'])
+def set_roi(request):
+    camera_id = request.data.get('camera_id')
+    x0 = request.data.get('x0')
+    x1 = request.data.get('x1')
+    y0 = request.data.get('y0')
+    y1 = request.data.get('y1')
+    camera_manager.camera_dict[camera_id]['roi'].append((x0, y0, x1, y1))
+    return Response({"message": "sucess"}, status=status.HTTP_200_OK)
