@@ -247,6 +247,11 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
         print(f"received data: {text_data}, bytes: {bytes_data}")
         text_data_json = json.loads(text_data)
         self.camera_id = camera_id = text_data_json['camera_id']
+        self.batch_num = text_data_json.get("batch_number")
+        if self.batch_num is not None:
+            print(f"receive batch number: {self.batch_num}")
+            return
+            
         self.trigger_mode = text_data_json['trigger_mode']
         if int(self.trigger_mode) == 0:
             self.camera_feed_task = asyncio.create_task(self.camera_feed(camera_id))

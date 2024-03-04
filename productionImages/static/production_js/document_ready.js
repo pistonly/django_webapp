@@ -25,4 +25,20 @@ function searchProduct(){
 $(document).ready(function() {
     getLatestProduct();
     searchProduct();
+    $('#start-camera-background').click(function (){
+        console.log("start");
+        $.ajax({
+            url: start_camera_url,
+            type: 'POST',
+            data: {
+                batch_number: $('#production-input').val()
+            },
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success: function(response) {
+                console.log("start success");
+            }
+        });
+    });
 });
