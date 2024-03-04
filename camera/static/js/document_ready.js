@@ -1,5 +1,6 @@
 $(document).ready(function() {
 
+    const continous_mode_radio = $('#continous-mode');
     $('#select_camera').change(getCameraParameters);
     // Listen for changes on the ae_state radio buttons
     $('input[name="ae_state"]').change(function() {
@@ -101,8 +102,7 @@ $(document).ready(function() {
     // trigger mode
     // Listen for changes on the trigger mode radio buttons
     $('input[name="trigger"]').change(function() {
-        console.log("trigger");
-        if ($('#continous-mode').is(':checked')) {
+        if (continous_mode_radio.is(':checked')) {
             // Show the trigger button when "软件触发" is selected
             $('#trigger-settings').hide();
             $('#start-preview').prop('disabled', false);
@@ -112,11 +112,8 @@ $(document).ready(function() {
         } else {
             // Hide the trigger button for other selections
             $('#trigger-settings').show();
-            $('#start-preview').prop('disabled', true);
-            $('#stop-preview').prop('disabled', true);
-            // restart ws
+            // stop ws
             stopPreview();
-            startPreview();
         }
         trigger_mode = $(this).val();
         // setting
@@ -132,6 +129,11 @@ $(document).ready(function() {
             },
             success: function(data) {
                 console.log("triggerMode setting success");
+                startPreview();
+                if (!continous_mode_radio.is(':checked')) {
+                    $('#start-preview').prop('disabled', true);
+                    $('#stop-preview').prop('disabled', true);
+                }
             }
         });
     });

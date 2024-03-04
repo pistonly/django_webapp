@@ -33,6 +33,7 @@
 
     function stopPreview() {
         if (ws) {
+            console.log("stop ws");
             ws.close(1000, "stop preview.");
             $('#start-preview').prop('disabled', false);
             $('#stop-preview').prop('disabled', true);

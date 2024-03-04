@@ -90,8 +90,6 @@ document.addEventListener('DOMContentLoaded', function() {
     image.onload = function() {
         realWidth = this.naturalWidth;
         realHeight = this.naturalHeight;
-        console.log("image");
-        console.log(realWidth, realHeight);
 
         // get current scale, offset
         updateScaleOffset();
