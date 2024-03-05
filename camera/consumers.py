@@ -13,6 +13,7 @@ import cv2
 from multiprocessing import Process, Pipe, shared_memory
 import time
 from pathlib import Path
+from productionImages.models import upload_one_image
 
 
 current_dir = Path(__file__).resolve().parent
@@ -236,6 +237,16 @@ class cameraManager:
 camera_manager = cameraManager()
 
 
+
+def soft_trigger_background(batch_number, camera_id):
+    success, img_buf = camera_manager.soft_trigger(camera_id)
+    if img_buf is not None:
+        img_name = f"{camera_id}_{time.time()}.jpg"
+        upload_one_image(img_buf, img_name, batch_number)
+    else:
+        print("soft trigger failed!")
+
+
 class CameraStreamConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         await self.accept()
@@ -247,11 +258,12 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
         print(f"received data: {text_data}, bytes: {bytes_data}")
         text_data_json = json.loads(text_data)
         self.camera_id = camera_id = text_data_json['camera_id']
-        self.batch_num = text_data_json.get("batch_number")
+        self.batch_num = batch_num = text_data_json.get("batch_number")
         if self.batch_num is not None:
             print(f"receive batch number: {self.batch_num}")
+            soft_trigger_background(batch_num, camera_id)
             return
-            
+
         self.trigger_mode = text_data_json['trigger_mode']
         if int(self.trigger_mode) == 0:
             self.camera_feed_task = asyncio.create_task(self.camera_feed(camera_id))
