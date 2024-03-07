@@ -18,13 +18,14 @@ from productionImages.models import upload_one_image
 
 current_dir = Path(__file__).resolve().parent
 class cameraManager:
-
     def __init__(self) -> None:
         self.camera_dict = {}
         self.camera_process = {}
         self.conn_in_dict, self.conn_out_dict = {}, {}
         self.pipe_lock = asyncio.Lock()
         self.configure_dir = current_dir / 'configure'
+        self.current_camera = {}
+        self.camera_list = []
 
     def init_camera_configure(self, sn):
         camera_config_dir = self.configure_dir / sn
@@ -39,105 +40,120 @@ class cameraManager:
         configures = [str(f) for f in camera_config_dir.iterdir() if f.with_suffix(".json")]
         configures.sort()
         # default config
-        success, default_configure = self.get_camera_info(sn)
+        success, default_configure = self.get_camera_info()
 
-        self.camera_dict[sn].update({"configure_f": configures, 'default_config': default_configure})
+        self.current_camera.update({"configure_f": configures, 'default_config': default_configure})
 
-    def reset_configure(self, sn, config_f):
-        success, _ = self.save_configure(sn, config_f, self.camera_dict[sn]['default_config'])
+    def reset_configure(self, config_f):
+        sn = self.current_camera.get('sn')
+        if sn is None:
+            return False, "please update camera list"
+
+        success, _ = self.save_configure(config_f, self.current_camera['default_config'])
         if success:
             return True, "reset OK"
         else:
             return False, "reset failed"
 
-    def start_process(self, sn, name):
-        self.camera_dict[sn] = {'name': name}
-        bs = 3000 * 3000 * 3
-        self.shm = shm = shared_memory.SharedMemory(create=True, size=bs)
-        self.camera_dict[sn]['buffer'] = np.ndarray((bs, ), dtype=np.uint8, buffer=shm.buf)
-        self.camera_dict[sn]['roi'] = []
+    def _start_camera(self, sn, name):
+        self.current_camera = {"sn": sn, "name": name}
+        # start
+        for camera_info in self.camera_list:
+            if camera_info.acSn.decode('utf8') == sn:
+                camera_res = initialize_cam(camera_info)
+                self.current_camera.update(dict(zip(["handle", "cap", "mono", "bs", "pb"],
+                                                    camera_res)))
+                return
 
-        # start process
-        parent_conn_in, child_conn_in = Pipe() 
-        parent_conn_out, child_conn_out = Pipe() 
-        p = Process(target=camera_process,
-                    args=(sn, child_conn_in, parent_conn_out, self.shm.name))
-        p.start()
-        self.camera_dict[sn].update({'process': p, 'conn_in': parent_conn_in,
-                                     'conn_out': child_conn_out})
+    def start_camera(self, sn, name):
+        if self.current_camera.get("sn") is None:
+            self._start_camera(sn, name)
+        elif self.current_camera["sn"] != sn:
+            self.close_camera()
+            self._start_camera(sn, name)
+        else:
+            print(f"camera: {sn} started!")
+
         # confiugre
         self.init_camera_configure(sn)
 
-    def save_configure(self, sn: str, config_f: str, config_dict = None):
+    def save_configure(self, config_f: str, config_dict = None):
+        '''
+        configure file start with "configure_"
+        '''
+        sn = self.current_camera.get('sn')
+        if sn is None:
+            return False, "please update camera list"
+
         if not config_f.startswith("configure_"):
             config_f = f"configure_{config_f}"
         config_f_path = self.configure_dir / sn / config_f
         if config_dict is None:
-            success, config_dict = self.get_camera_info(sn)
+            success, config_dict = self.get_camera_info()
         else:
             success = True
 
         if success:
-            json.dump(config_dict, open(str(config_f_path, "w")))
+            json.dump(config_dict, open(str(config_f_path), "w"))
             return True, "saved success"
         else:
             return success, "save configure failed"
 
-    def load_configure(self, sn: str, config_f: str):
+    def load_configure(self, config_f: str):
+        sn = self.current_camera.get('sn')
+        if sn is None:
+            return False, "please update camera list"
+
         if not config_f.startswith("configure_"):
             config_f = f"configure_{config_f}"
         config_f_path = self.configure_dir / sn / config_f
         if config_f_path.is_file():
-            config_dict = json.load(open(str(config_f_path, "r")))
-            success, message = self.set_camera(sn, config_dict)
+            config_dict = json.load(open(str(config_f_path), "r"))
+            success, message = self.set_camera(config_dict)
             self.camera_dict[sn].update({'roi': config_dict['roi']})
             return success, message
         else:
             return False, f"{str(config_f_path)} is not file"
 
     def update_camera_list(self):
-        camera_list = get_devInfo_list()
-        for camera_info in camera_list:
+        self.camera_list = get_devInfo_list()
+        # set default camera
+        if len(self.camera_list):
+            camera_info = self.camera_list[0]
             sn = camera_info.acSn.decode('utf8')
             name = camera_info.acFriendlyName.decode('utf8')
-            if sn not in self.camera_dict or (not self.camera_dict[sn]['process'].is_alive()):
-                self.start_process(sn, name)
+            self.start_camera(sn, name)
 
-    def close_all_cameras(self):
-        for _, camera_i in self.camera_dict.items():
-            camera_i['conn_in'].send({'stop': 1})
-            camera_i['process'].join()
+    def close_camera(self):
+        if self.current_camera.get("sn") is not None:
+            close_camera(self.current_camera['handle'], self.current_camera['pb'])
 
-    def get_one_frame(self, camera_id: str):
-        camera = self.camera_dict.get(camera_id)
-        if camera is None:
-            return False, f"camera_id: {camera_id} is wrong"
-        camera['conn_in'].send({'frame': 1})
-        h, w, c = camera['conn_out'].recv()
-
-        frame = camera['buffer'][:(h * w * c)].reshape(h, w, c)
+    def get_one_frame(self):
+        if self.current_camera.get('sn') is None:
+            return False, "please update camera list"
+        pb, FH = get_one_frame(self.current_camera['handle'], self.current_camera['pb'])
+        frame = image_to_numpy(pb, FH)
         frame = frame[:, :, 0] if frame.shape[-1] == 1 else frame
         frame = Image.fromarray(frame.astype(np.uint8))
         buffer = io.BytesIO()
         frame.save(buffer, format='JPEG')
         return True, buffer
 
-    def grab(self, camera_id: str, path: str, quality=100):
-        camera = self.camera_dict.get(camera_id)
-        if camera is None:
-            return False, f"camera_id: {camera_id} is wrong"
-        camera['conn_in'].send({'grab': 1, 'path': path, 'quality': quality})
-        success = camera['conn_out'].recv()
-        return True, success
+    def grab(self, path: str, quality=100):
+        if self.current_camera.get('sn') is None:
+            return False, "please update camera list"
+        PB, FH = get_one_frame(self.current_camera['handle'], self.current_camera['pb'])
+        save_image(self.current_camera['handle'], PB, FH, path, quality, img_type='bmp')
+        return True, True
 
-    def soft_trigger(self, camera_id: str):
-        camera = self.camera_dict.get(camera_id)
-        if camera is None:
-            return False, f"camera_id: {camera_id} is wrong"
-        camera['conn_in'].send({'trigger': 1})
-        
-        h, w, c = camera['conn_out'].recv()
-        frame = camera['buffer'][:(h * w * c)].reshape(h, w, c)
+    def soft_trigger(self):
+        if self.current_camera.get('sn') is None:
+            return False, "please update camera list"
+        camera = self.current_camera
+        error_code = softTrigger(camera['handle'])
+        # get one frame
+        pb, FH = get_one_frame(camera['handle'], camera['pb'])
+        frame = image_to_numpy(pb, FH)
         frame = frame[:, :, 0] if frame.shape[-1] == 1 else frame
         if len(camera['roi']):
             mask = np.zeros(frame.shape[0:2], dtype=np.uint8)
@@ -150,38 +166,21 @@ class cameraManager:
         frame.save(buffer, format='JPEG')
         return True, buffer
 
-    def get_camera_info(self, camera_id: str):
-        camera = self.camera_dict.get(camera_id)
-        if camera is None:
-            return False, f"camera_id: {camera_id} is wrong"
-
-        camera['conn_in'].send({"get": 1})
-        camera_info = camera['conn_out'].recv()
+    def get_camera_info(self):
+        camera = self.current_camera
+        camera_info = get_camera_parameters(camera['handle'], camera['cap'])
         camera_info.update({"roi": camera['roi']})
         return True, camera_info
 
-    def set_camera(self, camera_id: str, parameters: dict):
-        camera = self.camera_dict.get(camera_id)
-        if camera is None:
-            return False, f"camera_id: {camera_id} is wrong"
-
-        camera['conn_in'].send({"set": parameters})
-        camera_info = camera['conn_out'].recv()
+    def set_camera(self, parameters: dict):
+        camera = self.current_camera
+        set_camera_parameter(camera['handle'], **parameters)
+        camera_info = get_camera_parameters(camera['handle'], camera['cap'])
         return True, camera_info
-
 
 
 camera_manager = cameraManager()
 
-
-
-def soft_trigger_background(batch_number, camera_id):
-    success, img_buf = camera_manager.soft_trigger(camera_id)
-    if img_buf is not None:
-        img_name = f"{camera_id}_{time.time()}.jpg"
-        upload_one_image(img_buf, img_name, batch_number)
-    else:
-        print("soft trigger failed!")
 
 
 class CameraStreamConsumer(AsyncWebsocketConsumer):
@@ -195,11 +194,6 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
         print(f"received data: {text_data}, bytes: {bytes_data}")
         text_data_json = json.loads(text_data)
         self.camera_id = camera_id = text_data_json['camera_id']
-        self.batch_num = batch_num = text_data_json.get("batch_number")
-        if self.batch_num is not None:
-            print(f"receive batch number: {self.batch_num}")
-            soft_trigger_background(batch_num, camera_id)
-            return
 
         self.trigger_mode = text_data_json['trigger_mode']
         if int(self.trigger_mode) == 0:
