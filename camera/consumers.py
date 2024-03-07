@@ -17,68 +17,6 @@ from productionImages.models import upload_one_image
 
 
 current_dir = Path(__file__).resolve().parent
-def camera_process(camera_sn: str, conn_in, conn_out, shm_name):
-    empty_loop_start = time.time()
-    camera_list = get_devInfo_list()
-    for camera_info in camera_list:
-        if camera_info.acSn.decode('utf8') == camera_sn:
-            camera_res = initialize_cam(camera_info)
-            camera = dict(zip(["handle", "cap", "mono", "bs", "pb"],
-                              camera_res))
-
-            existing_shm = shared_memory.SharedMemory(name=shm_name)
-            frame_buffer = np.ndarray((camera['bs'], ), dtype=np.uint8, buffer=existing_shm.buf)
-            break
-
-    try:
-        while True:
-            if conn_in.poll():  # 检查管道是否有待读取的消息
-                cmd_dict = conn_in.recv()  # 接收命令
-                if "stop" in cmd_dict:
-                    close_camera(camera['handle'], camera['pb'])
-                    continue
-                if 'set' in cmd_dict:
-                    print(cmd_dict)
-                    set_camera_parameter(camera['handle'], **cmd_dict['set'])
-                    parameters = get_camera_parameters(camera['handle'], camera['cap'])
-                    conn_out.send(parameters)
-                    continue
-                if 'get' in cmd_dict:
-                    parameters = get_camera_parameters(camera['handle'], camera['cap'])
-                    conn_out.send(parameters)
-                    continue
-                if 'frame' in cmd_dict:
-                    pb, FH = get_one_frame(camera['handle'], camera['pb'])
-                    frame = image_to_numpy(pb, FH)
-                    h, w, c = frame.shape
-                    frame = frame.flatten()
-                    frame_buffer[0:len(frame)] = frame
-                    conn_out.send((h, w, c))
-                    continue
-                if 'trigger' in cmd_dict:
-                    # TODO:
-                    error_code = softTrigger(camera['handle'])
-                    # get one frame
-                    pb, FH = get_one_frame(camera['handle'], camera['pb'])
-                    frame = image_to_numpy(pb, FH)
-                    h, w, c = frame.shape
-                    frame = frame.flatten()
-                    frame_buffer[0:len(frame)] = frame
-                    conn_out.send((h, w, c))
-                    continue
-
-                if 'grab' in cmd_dict:
-                    PB, FH = get_one_frame(camera['handle'], camera['pb'])
-                    save_image(camera['handle'], PB, FH, cmd_dict['path'], cmd_dict['quality'], img_type='bmp')
-                    conn_out.send(1)
-                    continue
-    except Exception as e:
-        print(f"camera process error: {e}")
-
-    finally:
-        if camera:
-            close_camera(camera['handle'], camera['pb'])
-
 class cameraManager:
 
     def __init__(self) -> None:
@@ -111,7 +49,6 @@ class cameraManager:
             return True, "reset OK"
         else:
             return False, "reset failed"
-
 
     def start_process(self, sn, name):
         self.camera_dict[sn] = {'name': name}
