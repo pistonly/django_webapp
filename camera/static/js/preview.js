@@ -1,4 +1,4 @@
-    function startPreview() {
+    function startWS() {
         if (ws && ws.readyState === WebSocket.OPEN) {
             console.log("WebSocket is already connected.");
             return; // Exit the function to prevent a new connection
@@ -9,10 +9,6 @@
 
         ws.onopen = function(e) {
             console.log("Connection established!");
-            ws.send(JSON.stringify({
-                'camera_id': cameraId,
-                'trigger_mode': trigger_mode,
-            }));
         };
 
         ws.onmessage = function(e) {
@@ -27,14 +23,28 @@
         ws.onclose = function(e) {
             console.log("WebSocket closed");
         };
+        $('#start-preview').prop('disabled', false);
+        $('#stop-preview').prop('disabled', true);
+    }
+
+    function startPreview() {
+        if (ws) {
+            console.log("start preview");
+            ws.send(JSON.stringify({
+                "start_preview": 1,
+                "trigger_mode": trigger_mode
+            }));
+        }
         $('#start-preview').prop('disabled', true);
         $('#stop-preview').prop('disabled', false);
     }
 
     function stopPreview() {
         if (ws) {
-            console.log("stop ws");
-            ws.close(1000, "stop preview.");
+            console.log("stop preview");
+            ws.send(JSON.stringify({
+                    "stop_preview": 1
+            }));
             $('#start-preview').prop('disabled', false);
             $('#stop-preview').prop('disabled', true);
         }

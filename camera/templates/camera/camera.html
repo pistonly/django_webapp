@@ -352,22 +352,21 @@
     var save_configure_url = $('#save-configure-url').data('url');
     var reset_configure_url = $('#reset-configure-url').data('url');
     var load_configure_url = $('#load-configure-url').data('url');
+    var camera_list_url = $("#camera-list-url").data("url");
 
     var ws;
     var trigger_mode = 0;
 
 
     function getCameraList() {
-        // Use jQuery to get the URL from data attribute
-        const url = $("#camera-list-url").data("url");
 
         // Use jQuery's ajax method to fetch data
         $.ajax({
-            url: url,
+            url: camera_list_url,
             type: 'GET',
             dataType: 'json',
             success: function(data) {
-                const cameras = data.cameras; // Assuming the format is { cameras: ['camera0', 'camera1'] }
+                const cameras = data.cameras;
                 const selectCamera = $("#select_camera");
 
                 // Clear existing options using jQuery

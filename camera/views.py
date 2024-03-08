@@ -25,7 +25,7 @@ def camera_view(request):
 def camera_list(request):
     print("camera list")
     camera_manager.update_camera_list()
-    camera_ids = list(camera_manager.camera_dict.keys())
+    camera_ids = camera_manager.camera_sn_list
     if len(camera_ids) < 1:
         camera_ids = ["---------"]
     return JsonResponse({'cameras': camera_ids})
@@ -46,6 +46,18 @@ def camera_grab(request):
     else:
         _status = status.HTTP_400_BAD_REQUEST
     return Response({"message": message}, status=_status)
+
+@login_required
+@api_view(['POST'])
+def change_camera(request):
+    camera_id = request.data.get("camera_id")
+    success, message = camera_manager.start_camera(camera_id)
+    if success:
+        _status = status.HTTP_200_OK
+    else:
+        _status = status.HTTP_400_BAD_REQUEST
+    return Response({"message": message}, status=_status)
+
 
 @login_required
 @api_view(['POST'])
@@ -97,8 +109,7 @@ def get_resolution_from_text(content):
 
 class CameraParameters(APIView):
     def get(self, request):
-        camera_id = request.query_params.get("camera_id")
-        success, camera_info = camera_manager.get_camera_info(camera_id)
+        success, camera_info = camera_manager.get_camera_info()
         print(camera_info)
 
         if not success:
@@ -108,9 +119,7 @@ class CameraParameters(APIView):
 
     def post(self, request):
         data = request.data.dict()
-        camera_id = data.get("camera_id")
-        if not camera_id:
-            return Response({"error": f"Camera: {camera_id} not found"}, status=status.HTTP_404_NOT_FOUND)
+
         if 'resolution' in data:
             ret, (w, h) = get_resolution_from_text(data['resolution'][0])
             if ret:
@@ -118,7 +127,7 @@ class CameraParameters(APIView):
             else:
                 return Response({"error": f"resoluton format error!"}, status=status.HTTP_404_NOT_FOUND)
 
-        success, camera_info = camera_manager.set_camera(camera_id, data)
+        success, camera_info = camera_manager.set_camera(data)
         print(camera_info)
         if success:
             return Response({"success": "Parameter updated"})
@@ -128,10 +137,9 @@ class CameraParameters(APIView):
 @login_required
 @api_view(['POST'])
 def set_roi(request):
-    camera_id = request.data.get('camera_id')
     x0 = request.data.get('x0')
     x1 = request.data.get('x1')
     y0 = request.data.get('y0')
     y1 = request.data.get('y1')
-    camera_manager.camera_dict[camera_id]['roi'].append((x0, y0, x1, y1))
+    camera_manager.set_roi(x0, y0, x1, y1)
     return Response({"message": "sucess"}, status=status.HTTP_200_OK)

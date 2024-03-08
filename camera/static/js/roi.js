@@ -54,16 +54,12 @@ function realCoor2imageCoor(realX, realY, scale, offset) {
     return [imgX, imgY];
 }
 
-function setROI(x0, y0, x1, y1) {
+function setROI0(x0, y0, x1, y1) {
     $.ajax({
-        url: set_roi_url,
+        url: '/api/camera/parameters/',
         type: 'POST',
         data: {
-            camera_id: $('#select_camera').val(),
-            x0: x0,
-            y0: y0,
-            x1: x1,
-            y1: y1
+            roi0: [x0, y0, x1, y1]
         },
         beforeSend: function (xhr) {
             xhr.setRequestHeader("X-CSRFToken", csrftoken);
@@ -81,6 +77,27 @@ function setROI(x0, y0, x1, y1) {
 }
 
 
+function setROI1(x0, y0, x1, y1) {
+    $.ajax({
+        url: '/api/camera/parameters/',
+        type: 'POST',
+        data: {
+            roi1: [x0, y0, x1, y1]
+        },
+        beforeSend: function (xhr) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        },
+        success: function () {
+            // 成功时的处理，例如显示一个消息
+            console.log('roi setted');
+        },
+        error: function (xhr, status, error) {
+            // 错误处理
+            console.error('An error occurred: ' + error);
+            $('#status').text('Error changing ae_state mode.');
+        }
+    });
+}
 // Mouse Position and RGB Logic
 document.addEventListener('DOMContentLoaded', function() {
     const image = document.getElementById('camera-image');
@@ -321,6 +338,9 @@ document.addEventListener('DOMContentLoaded', function() {
             roi_x1_1.prop('disabled', false);
             roi_y1_1.prop('disabled', false);
             roi_btn_1.prop('disabled', false);
+            // set roi-0
+            setROI0(roi_xy0[0], roi_xy0[1], roi_xy1[0], roi_xy1[1]);
+
         }
     }
 
@@ -353,6 +373,10 @@ document.addEventListener('DOMContentLoaded', function() {
             roi_x1_0.prop('disabled', false);
             roi_y1_0.prop('disabled', false);
             roi_btn_0.prop('disabled', false);
+
+            // set roi1
+            setROI1(roi_xy0[0], roi_xy0[1], roi_xy1[0], roi_xy1[1]);
+
         }
     }
 

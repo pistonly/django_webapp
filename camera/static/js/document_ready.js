@@ -1,5 +1,7 @@
 $(document).ready(function() {
 
+    startWS();
+
     const continous_mode_radio = $('#continous-mode');
     $('#select_camera').change(getCameraParameters);
     // Listen for changes on the ae_state radio buttons
@@ -225,6 +227,7 @@ $(document).ready(function() {
         ws.send(JSON.stringify({
             'camera_id': $('#select_camera').val(),
             'trigger_mode': trigger_mode,
+            'soft_trigger': 1
         }));
     });
 

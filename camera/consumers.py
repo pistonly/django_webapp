@@ -19,13 +19,11 @@ from productionImages.models import upload_one_image
 current_dir = Path(__file__).resolve().parent
 class cameraManager:
     def __init__(self) -> None:
-        self.camera_dict = {}
         self.camera_process = {}
-        self.conn_in_dict, self.conn_out_dict = {}, {}
-        self.pipe_lock = asyncio.Lock()
         self.configure_dir = current_dir / 'configure'
         self.current_camera = {}
-        self.camera_list = []
+        self.camera_sn_list = []
+        self.camera_dict = {}
 
     def init_camera_configure(self, sn):
         camera_config_dir = self.configure_dir / sn
@@ -34,13 +32,18 @@ class cameraManager:
         for i in range(4):
             config_f = camera_config_dir / f"configure_{i:03d}.json"
             if not config_f.is_file():
-                with open(str(config_f), 'w') as f:
-                    pass
+                json.dump({}, open(str(config_f), "w"))
 
         configures = [str(f) for f in camera_config_dir.iterdir() if f.with_suffix(".json")]
         configures.sort()
         # default config
         success, default_configure = self.get_camera_info()
+
+        # load setted_configure
+        setted_config_f = camera_config_dir / f"setted_configure.json"
+        if setted_config_f.is_file():
+            setted_config = json.load(open(str(setted_config_f), 'r'))
+            self.set_camera(setted_config)
 
         self.current_camera.update({"configure_f": configures, 'default_config': default_configure})
 
@@ -55,27 +58,35 @@ class cameraManager:
         else:
             return False, "reset failed"
 
-    def _start_camera(self, sn, name):
-        self.current_camera = {"sn": sn, "name": name}
+    def _start_camera(self, sn):
+        self.current_camera = {"sn": sn}
         # start
-        for camera_info in self.camera_list:
-            if camera_info.acSn.decode('utf8') == sn:
-                camera_res = initialize_cam(camera_info)
-                self.current_camera.update(dict(zip(["handle", "cap", "mono", "bs", "pb"],
-                                                    camera_res)))
-                return
+        camera_info = self.camera_dict.get(sn)
+        if camera_info:
+            name = camera_info.acFriendlyName.decode('utf8')
+            camera_res = initialize_cam(camera_info)
+            self.current_camera.update(dict(zip(["handle", "cap", "mono", "bs", "pb"],
+                                                camera_res)))
+            self.current_camera.update({'name': name})
+            print(f"camera: {sn} start success!")
+            return
+        else:
+            print(f"camera: {sn} start failed!")
 
-    def start_camera(self, sn, name):
+    def start_camera(self, sn):
+        if sn not in self.camera_dict:
+            return False, f"{sn} is not right sn"
         if self.current_camera.get("sn") is None:
-            self._start_camera(sn, name)
+            self._start_camera(sn)
         elif self.current_camera["sn"] != sn:
             self.close_camera()
-            self._start_camera(sn, name)
+            self._start_camera(sn)
         else:
             print(f"camera: {sn} started!")
 
         # confiugre
         self.init_camera_configure(sn)
+        return True, f"{sn} started"
 
     def save_configure(self, config_f: str, config_dict = None):
         '''
@@ -110,23 +121,23 @@ class cameraManager:
         if config_f_path.is_file():
             config_dict = json.load(open(str(config_f_path), "r"))
             success, message = self.set_camera(config_dict)
-            self.camera_dict[sn].update({'roi': config_dict['roi']})
             return success, message
         else:
             return False, f"{str(config_f_path)} is not file"
 
     def update_camera_list(self):
-        self.camera_list = get_devInfo_list()
+        camera_list = get_devInfo_list()
+        self.camera_dict = {camera_info.acSn.decode('utf8'): camera_info for camera_info in camera_list}
+        self.camera_sn_list = list(self.camera_dict.keys())
         # set default camera
-        if len(self.camera_list):
-            camera_info = self.camera_list[0]
-            sn = camera_info.acSn.decode('utf8')
-            name = camera_info.acFriendlyName.decode('utf8')
-            self.start_camera(sn, name)
+        if len(self.camera_sn_list):
+            self.start_camera(self.camera_sn_list[0])
 
     def close_camera(self):
         if self.current_camera.get("sn") is not None:
             close_camera(self.current_camera['handle'], self.current_camera['pb'])
+            print(f"{self.current_camera['sn']} closed")
+            self.current_camera = {}
 
     def get_one_frame(self):
         if self.current_camera.get('sn') is None:
@@ -155,12 +166,6 @@ class cameraManager:
         pb, FH = get_one_frame(camera['handle'], camera['pb'])
         frame = image_to_numpy(pb, FH)
         frame = frame[:, :, 0] if frame.shape[-1] == 1 else frame
-        if len(camera['roi']):
-            mask = np.zeros(frame.shape[0:2], dtype=np.uint8)
-            for roi in camera['roi']:
-                x0, y0, x1, y1 = np.array(roi).astype(np.int32)
-                mask[y0:y1, x0:x1] = 1
-            frame[mask == 0] = 0
         frame = Image.fromarray(frame.astype(np.uint8))
         buffer = io.BytesIO()
         frame.save(buffer, format='JPEG')
@@ -168,14 +173,18 @@ class cameraManager:
 
     def get_camera_info(self):
         camera = self.current_camera
-        camera_info = get_camera_parameters(camera['handle'], camera['cap'])
-        camera_info.update({"roi": camera['roi']})
-        return True, camera_info
+        try:
+            camera_info = get_camera_parameters(camera['handle'], camera['cap'])
+            return True, camera_info
+        except Exception as e:
+            return False, str(e)
 
     def set_camera(self, parameters: dict):
         camera = self.current_camera
+        if camera.get("sn") is None:
+            return False, "please update camera list"
         set_camera_parameter(camera['handle'], **parameters)
-        camera_info = get_camera_parameters(camera['handle'], camera['cap'])
+        camera_info = self.get_camera_info()
         return True, camera_info
 
 
@@ -188,55 +197,70 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
         await self.accept()
         print("connected")
         self.camera_feed_task = None
+        self.preview = False
 
     async def receive(self, text_data=None, bytes_data=None):
         # 这里可以根据需要处理接收到的数据
         print(f"received data: {text_data}, bytes: {bytes_data}")
         text_data_json = json.loads(text_data)
-        self.camera_id = camera_id = text_data_json['camera_id']
+        self.trigger_mode = text_data_json.get('trigger_mode')
 
-        self.trigger_mode = text_data_json['trigger_mode']
-        if int(self.trigger_mode) == 0:
-            self.camera_feed_task = asyncio.create_task(self.camera_feed(camera_id))
-        elif int(self.trigger_mode) == 1:
+        if camera_manager.current_camera.get('sn') is None:
+            print(f"current camera is None")
+            return 
+
+        if "start_preview" in text_data_json and (self.trigger_mode is not None):
+            if int(self.trigger_mode) == 0 and self.camera_feed_task is None:
+                self.preview = True
+                self.camera_feed_task = asyncio.create_task(self.camera_feed())
+                print("ws task started")
+
+        elif "stop_preview" in text_data_json:
+            self.preview = False
+            if self.camera_feed_task is not None:
+                await self.camera_feed_task
+                self.camera_feed_task = None
+
+        elif self.trigger_mode and int(self.trigger_mode) == 1:
             if self.camera_feed_task:
                 # close task
-                self.camera_feed_task.cancel()
-                # 等待任务被取消，确保资源被适当清理
-                try:
+                self.preview = False
+                if self.camera_feed_task is not None:
                     await self.camera_feed_task
-                except asyncio.CancelledError:
-                    print('error from disconnect')
+                    self.camera_feed_task = None
 
             # trigger
-            success, buffer = camera_manager.soft_trigger(camera_id)
-            if not success:
-                print("not success")
-            else:
-                await self.send(text_data=json.dumps(
-                    {"frame": base64.b64encode(buffer.getvalue()).decode('utf-8')}))
-
+            if "soft_trigger" in text_data_json:
+                success, buffer = camera_manager.soft_trigger()
+                if not success:
+                    print("ws:: soft_trigger failed: ", buffer)
+                else:
+                    await self.send_frame(buffer)
 
     async def send_frame(self, frame):
+        if isinstance(frame, io.BytesIO):
+            frame = base64.b64encode(frame.getvalue()).decode('utf-8')
         try:
             await self.send(text_data=json.dumps({"frame": frame}))
         except:
             print("send frame error")
 
-    async def camera_feed(self, camera_id):
+    async def camera_feed(self):
         try:
             frame_num = 0
             t0 = time.time()
-            while True:
-                # t0_ = time.time()
-                frame = await self.get_camera_frame(camera_id)  # 假设这个方法获取最新的相机帧
+            while self.preview:
+                t0_p = time.time()
+                frame = await self.get_camera_frame()
                 # print(f"get frame cost: {time.time() - t0_}")
                 await self.send_frame(frame)  # 调用send_frame发送图像数据
                 if frame_num % 100 == 99:
                     print(f"frame rate: {100 / (time.time() - t0)}")
                     t0 = time.time()
                 frame_num += 1
-                await asyncio.sleep(0.08)  # 模拟等待时间，这里假设是10帧/秒
+                wait_time = 0.05 - (time.time() - t0_p)  # 20fps
+                if wait_time > 0:
+                    await asyncio.sleep(wait_time)
         except asyncio.CancelledError:
             print("camera feed cancelled")
             pass
@@ -244,6 +268,7 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         # 取消之前创建的任务
         if self.camera_feed_task:
+            self.preview = False
             self.camera_feed_task.cancel()
             # 等待任务被取消，确保资源被适当清理
             try:
@@ -251,12 +276,16 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
             except asyncio.CancelledError:
                 print('error from disconnect')
 
-    async def get_camera_frame(self, camera_id):
-        success, buffer = camera_manager.get_one_frame(camera_id)
+        # close camera
+        camera_manager.close_camera()
+
+    async def get_camera_frame(self):
+        success, buffer = camera_manager.get_one_frame()
         if not success:
+            print(f"ws:: get_camera_frame failed: ", buffer)
             frame = np.random.randint(0, 255, (640, 640), dtype=np.uint8)
             frame = Image.fromarray(frame)
             buffer = io.BytesIO()
             frame.save(buffer, format='JPEG')
+        return buffer
 
-        return base64.b64encode(buffer.getvalue()).decode('utf-8')

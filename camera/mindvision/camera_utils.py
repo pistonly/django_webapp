@@ -1,7 +1,13 @@
-from . import mvsdk
-# import mvsdk
+try:
+    from . import mvsdk
+except:
+    import mvsdk
 import numpy as np
 
+roi0 = [0, 0, 1280, 720]
+roi1 = [0, 0, 1920, 1080]
+roi0_disabled = 1
+roi1_disabled = 1
 
 def get_devInfo_list()-> list:
     return mvsdk.CameraEnumerateDevice()
@@ -71,6 +77,9 @@ def close_camera(hCamera, pFrameBuffer):
 
 def get_camera_parameters(hCamera, cap):
     parameters = {}
+    # get roi
+    parameters.update({"roi0": roi0, "roi1": roi1,
+                       'roi0_disabled': roi0_disabled, 'roi1_disabled': roi1_disabled})
     # get resolution
     psCurVideoSize = mvsdk.CameraGetImageResolution(hCamera)
     parameters.update({"resolution": {"w": psCurVideoSize.iWidth, "h": psCurVideoSize.iHeight}})
@@ -157,6 +166,23 @@ def get_camera_parameters(hCamera, cap):
 
 def set_camera_parameter(hCamera, **kwargs):
     print(kwargs)
+    if "roi0" in kwargs:
+        global roi0
+        # TODO: change format
+        roi0 = kwargs['roi0']
+
+    if "roi0_disabled" in kwargs:
+        global roi0_disabled
+        roi0_disabled = int(kwargs['roi0_disabled'])
+
+    if "roi1" in kwargs:
+        global roi1
+        roi1 = kwargs['roi1']
+
+    if "roi1_disabled" in kwargs:
+        global roi1_disabled
+        roi1_disabled = int(kwargs['roi1_disabled'])
+
     # set resolution
     if "resolution" in kwargs:
         resolution = mvsdk.tSdkImageResolution()
@@ -292,6 +318,8 @@ if __name__ == "__main__":
          parameters = get_camera_parameters(hCamera, cap)
          print(parameters)
 
-         # ##################################################
+         # ################## close camera #####################
 
          close_camera(hCamera, pFrameBuffer)
+         print("-------------------- closed--------------------")
+
