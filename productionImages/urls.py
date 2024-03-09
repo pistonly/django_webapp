@@ -9,4 +9,7 @@ urlpatterns = [
     path("stop_camera_background", views.stop_camera_background, name="stop_camera_background"),
     path('search-batch/', views.batchNumberSearch, name='search_batch_number'),
     path('latest_product/', views.latest_product, name="latest_product"),
+    path('api/gallery/upload/', views.GalleryImageUploadAPIView.as_view(),
+         name='gallery-photo-upload'),
+
 ]

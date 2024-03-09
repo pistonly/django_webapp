@@ -10,23 +10,21 @@ from PIL import Image
 import numpy as np
 import io
 import cv2
-from multiprocessing import Process, Pipe, shared_memory
 import time
 from pathlib import Path
-from productionImages.models import upload_one_image
 
 
 current_dir = Path(__file__).resolve().parent
+configure_dir = current_dir / 'configure'
 class cameraManager:
     def __init__(self) -> None:
         self.camera_process = {}
-        self.configure_dir = current_dir / 'configure'
         self.current_camera = {}
         self.camera_sn_list = []
         self.camera_dict = {}
 
     def init_camera_configure(self, sn):
-        camera_config_dir = self.configure_dir / sn
+        camera_config_dir = configure_dir / sn
         camera_config_dir.mkdir(parents=True, exist_ok=True)
         # 4 configures
         for i in range(4):
@@ -98,7 +96,7 @@ class cameraManager:
 
         if not config_f.startswith("configure_"):
             config_f = f"configure_{config_f}"
-        config_f_path = self.configure_dir / sn / config_f
+        config_f_path = configure_dir / sn / config_f
         if config_dict is None:
             success, config_dict = self.get_camera_info()
         else:
@@ -117,7 +115,7 @@ class cameraManager:
 
         if not config_f.startswith("configure_"):
             config_f = f"configure_{config_f}"
-        config_f_path = self.configure_dir / sn / config_f
+        config_f_path = configure_dir / sn / config_f
         if config_f_path.is_file():
             config_dict = json.load(open(str(config_f_path), "r"))
             success, message = self.set_camera(config_dict)
