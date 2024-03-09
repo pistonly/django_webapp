@@ -1,4 +1,3 @@
-
 var selecting_roi = false;
 var rect_color = 'red';
 var realWidth;
@@ -61,14 +60,14 @@ function setROI0(x0, y0, x1, y1) {
         data: {
             roi0: [x0, y0, x1, y1]
         },
-        beforeSend: function (xhr) {
+        beforeSend: function(xhr) {
             xhr.setRequestHeader("X-CSRFToken", csrftoken);
         },
-        success: function () {
+        success: function() {
             // 成功时的处理，例如显示一个消息
             console.log('roi setted');
         },
-        error: function (xhr, status, error) {
+        error: function(xhr, status, error) {
             // 错误处理
             console.error('An error occurred: ' + error);
             $('#status').text('Error changing ae_state mode.');
@@ -76,6 +75,49 @@ function setROI0(x0, y0, x1, y1) {
     });
 }
 
+function setROIDisable0(val) {
+    $.ajax({
+        url: '/api/camera/parameters/',
+        type: 'POST',
+        data: {
+            roi0_disabled: val
+        },
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        },
+        success: function() {
+            // 成功时的处理，例如显示一个消息
+            console.log('roidisable0 setted');
+        },
+        error: function(xhr, status, error) {
+            // 错误处理
+            console.error('An error occurred: ' + error);
+            $('#status').text('Error roidisable0.');
+        }
+    });
+}
+
+function setROIDisable1(val) {
+    $.ajax({
+        url: '/api/camera/parameters/',
+        type: 'POST',
+        data: {
+            roi1_disabled: val
+        },
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        },
+        success: function() {
+            // 成功时的处理，例如显示一个消息
+            console.log('roidisable0 setted');
+        },
+        error: function(xhr, status, error) {
+            // 错误处理
+            console.error('An error occurred: ' + error);
+            $('#status').text('Error roidisable0.');
+        }
+    });
+}
 
 function setROI1(x0, y0, x1, y1) {
     $.ajax({
@@ -84,14 +126,14 @@ function setROI1(x0, y0, x1, y1) {
         data: {
             roi1: [x0, y0, x1, y1]
         },
-        beforeSend: function (xhr) {
+        beforeSend: function(xhr) {
             xhr.setRequestHeader("X-CSRFToken", csrftoken);
         },
-        success: function () {
+        success: function() {
             // 成功时的处理，例如显示一个消息
             console.log('roi setted');
         },
-        error: function (xhr, status, error) {
+        error: function(xhr, status, error) {
             // 错误处理
             console.error('An error occurred: ' + error);
             $('#status').text('Error changing ae_state mode.');
@@ -102,22 +144,23 @@ function setROI1(x0, y0, x1, y1) {
 document.addEventListener('DOMContentLoaded', function() {
     const image = document.getElementById('camera-image');
     const coordsDisplay = document.getElementById('coords');
+    const roiCanvas = document.getElementById('roiCanvas');
 
     // 确保图片已加载获取其真实尺寸
-    image.onload = function() {
+    image.onload = function () {
         realWidth = this.naturalWidth;
         realHeight = this.naturalHeight;
 
         // get current scale, offset
         updateScaleOffset();
 
-        // debug 
-        roiCanvas.addEventListener('mousemove', function(e) {
-            const rect = image.getBoundingClientRect();
-            const coor = getRealCoordinate(rect, e);
-            // 更新坐标显示
-            coordsDisplay.textContent = `Coordinates: ${coor[0]}, ${coor[1]}`;
-        });
+        // 确保canvas尺寸与图像相匹配
+        if (roiCanvas.width != image.width || roiCanvas.height != image.height) {
+            roiCanvas.width = image.width;
+            roiCanvas.height = image.height;
+        }
+
+
     };
 
     if ($('#camera-image').prop('complete')) {
@@ -127,7 +170,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 });
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const image = document.getElementById('camera-image');
     const dragHandle = document.getElementById('dragHandle');
     const infoPanel = document.getElementById('infoPanel');
@@ -137,6 +180,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const ctx = roiCanvas.getContext('2d');
     let isResizing = false;
     let isDrawing = false;
+    let reDrawRoi_flag0 = false;
+    let reDrawRoi_flag1 = false;
     let startX, startY, startWidth, startHeight;
 
     // roi-0
@@ -156,7 +201,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const roi_btn_1 = $('#roi-button-1');
 
     function redrawROI0() {
-        if (roi_x0_0.val()) {
+        if (reDrawRoi_flag0 && roi_x0_0.val()) {
             const x0 = Number(roi_x0_0.val());
             const y0 = Number(roi_y0_0.val());
             const x1 = Number(roi_x1_0.val());
@@ -173,7 +218,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function redrawROI1() {
-        if (roi_x0_1.val()) {
+        if (reDrawRoi_flag1 && roi_x0_1.val()) {
             const x0 = Number(roi_x0_1.val());
             const y0 = Number(roi_y0_1.val());
             const x1 = Number(roi_x1_1.val());
@@ -277,37 +322,12 @@ document.addEventListener('DOMContentLoaded', function() {
         roi_xy1 = getRealCoordinate(rect, e);
 
         // draw all ROIs
-        if (roi_x0_1.val() && rect_color == 'red') {
-            // draw roi-1
-            const x0 = Number(roi_x0_1.val());
-            const y0 = Number(roi_y0_1.val());
-            const x1 = Number(roi_x1_1.val());
-            const y1 = Number(roi_y1_1.val());
-            let width = x1 - x0;
-            let height = y1 - y0;
-            if (width > 0 && height > 0) {
-                const x0y0 = realCoor2imageCoor(x0, y0, currentScale, currentOffset);
-                width = width / currentScale;
-                height = height / currentScale;
-                drawRect(x0y0[0], x0y0[1], width, height, 'green');
-            }
+        if (rect_color == 'red') {
+            redrawROI1();
+        } else {
+            redrawROI0();
         }
 
-        if (roi_x0_0.val() && rect_color == 'green') {
-            // draw roi-0
-            const x0 = Number(roi_x0_0.val());
-            const y0 = Number(roi_y0_0.val());
-            const x1 = Number(roi_x1_0.val());
-            const y1 = Number(roi_y1_0.val());
-            let width = x1 - x0;
-            let height = y1 - y0;
-            if (width > 0 && height > 0) {
-                const x0y0 = realCoor2imageCoor(x0, y0, currentScale, currentOffset);
-                width = width / currentScale;
-                height = height / currentScale;
-                drawRect(x0y0[0], x0y0[1], width, height, 'red');
-            }
-        }
     });
 
     function ROIButtonText0() {
@@ -331,6 +351,7 @@ document.addEventListener('DOMContentLoaded', function() {
             roi_x1_0.val(roi_xy1[0]);
             roi_y1_0.val(roi_xy1[1]);
             check_roi_0.prop('checked', true);
+            check_roi_0.trigger('change');
             // unfree roi-0
             check_roi_1.prop('disabled', false);
             roi_x0_1.prop('disabled', false);
@@ -366,6 +387,7 @@ document.addEventListener('DOMContentLoaded', function() {
             roi_x1_1.val(roi_xy1[0]);
             roi_y1_1.val(roi_xy1[1]);
             check_roi_1.prop('checked', true);
+            check_roi_1.trigger('change');
             // unfree roi-0
             check_roi_0.prop('disabled', false);
             roi_x0_0.prop('disabled', false);
@@ -388,19 +410,64 @@ document.addEventListener('DOMContentLoaded', function() {
         ROIButtonText1();
     });
 
-    check_roi_0.change(function () {
-        if (this.checked && roi_x0_0.val()) {
-            setROI(roi_x0_0.val(), roi_y0_0.val(), roi_x1_0.val(), roi_y1_0.val());
+    function check_roi_fun0 () {
+        if (this.checked) {
+            reDrawRoi_flag0 = true;
+            setROIDisable0(0);
+        } else {
+            reDrawRoi_flag0 = false;
+            setROIDisable0(1);
         }
+        // 清除canvas
+        ctx.clearRect(0, 0, roiCanvas.width, roiCanvas.height);
+        redrawROI0();
+        redrawROI1();
+    }
+
+    function check_roi_fun1(){
+        if (this.checked) {
+            reDrawRoi_flag1 = true;
+            setROIDisable1(0);
+        } else {
+            reDrawRoi_flag1 = false;
+            setROIDisable1(1);
+        }
+        console.log(reDrawRoi_flag1);
+        // 清除canvas
+        ctx.clearRect(0, 0, roiCanvas.width, roiCanvas.height);
+        redrawROI0();
+        redrawROI1();
+    }
+
+    check_roi_0.change(check_roi_fun0);
+    check_roi_1.change(check_roi_fun1);
+
+    // 目标函数，当图片尺寸改变时触发
+    function func() {
+        console.log('图片尺寸已改变！');
+    }
+
+    // 创建一个观察器实例并传入回调函数
+    var observer = new MutationObserver(function (mutations) {
+        mutations.forEach(function (mutation) {
+            if (mutation.attributeName === 'style') {
+                // 在这里调用你的函数
+                func();
+            }
+        });
     });
 
-    check_roi_1.change(function () {
-        if (this.checked && roi_x0_1.val()) {
-            setROI(roi_x0_1.val(), roi_y0_1.val(), roi_x1_1.val(), roi_y1_1.val());
-        }
-    });
+    // 通过querySelector获取需要观察变化的图片元素
+    var img = document.querySelector('#camera-image');
+
+    // 配置观察选项:
+    var config = { attributes: true, childList: true, subtree: true };
+
+    // 传入目标节点和观察选项开始观察
+    observer.observe(img, config);
+
+    // 注意：这个方法依赖于style属性的变化来触发尺寸变化的检测。
+    // 如果图片尺寸的改变不会影响其style属性，这种方法可能不会工作。
+
 
 });
-
-
-

@@ -168,8 +168,7 @@ def set_camera_parameter(hCamera, **kwargs):
     print(kwargs)
     if "roi0" in kwargs:
         global roi0
-        # TODO: change format
-        roi0 = kwargs['roi0']
+        roi0 = [int(v) for v in kwargs['roi0']]
 
     if "roi0_disabled" in kwargs:
         global roi0_disabled
@@ -177,7 +176,7 @@ def set_camera_parameter(hCamera, **kwargs):
 
     if "roi1" in kwargs:
         global roi1
-        roi1 = kwargs['roi1']
+        roi1 = [int(v) for v in kwargs['roi1']]
 
     if "roi1_disabled" in kwargs:
         global roi1_disabled

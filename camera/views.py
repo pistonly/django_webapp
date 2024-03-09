@@ -119,6 +119,11 @@ class CameraParameters(APIView):
 
     def post(self, request):
         data = request.data.dict()
+        data_append = {}
+        for k, v in data.items():
+            if "[]" in k:
+                data_append[k[:-2]] = request.data.getlist(k)
+        data.update(data_append)
 
         if 'resolution' in data:
             ret, (w, h) = get_resolution_from_text(data['resolution'][0])
@@ -127,6 +132,7 @@ class CameraParameters(APIView):
             else:
                 return Response({"error": f"resoluton format error!"}, status=status.HTTP_404_NOT_FOUND)
 
+        print(data)
         success, camera_info = camera_manager.set_camera(data)
         print(camera_info)
         if success:
@@ -134,12 +140,3 @@ class CameraParameters(APIView):
         else:
             return Response({"error": "Failed to update parameter"}, status=status.HTTP_400_BAD_REQUEST)
 
-@login_required
-@api_view(['POST'])
-def set_roi(request):
-    x0 = request.data.get('x0')
-    x1 = request.data.get('x1')
-    y0 = request.data.get('y0')
-    y1 = request.data.get('y1')
-    camera_manager.set_roi(x0, y0, x1, y1)
-    return Response({"message": "sucess"}, status=status.HTTP_200_OK)

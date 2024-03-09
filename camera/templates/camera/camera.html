@@ -115,7 +115,6 @@
             <!-- 在这里添加一个隐藏的div来存储动态生成的URL -->
             <div id="camera-list-url" data-url="{% url 'camera_list' %}" style="display: none;"></div>
             <div id="camera-grab-url" data-url="{% url 'camera_grab' %}" style="display: none;"></div>
-            <div id="set-roi-url" data-url="{% url 'set_roi' %}" style="display: none;"></div>
             <div id="save-configure-url" data-url="{% url 'save_configure' %}" style="display: none;"></div>
             <div id="load-configure-url" data-url="{% url 'load_configure' %}" style="display: none;"></div>
             <div id="reset-configure-url" data-url="{% url 'reset_configure' %}" style="display: none;"></div>
@@ -348,7 +347,6 @@
 
 <script>
     var csrftoken = $("[name=csrfmiddlewaretoken]").val();
-    var set_roi_url = $('#set-roi-url').data('url');
     var save_configure_url = $('#save-configure-url').data('url');
     var reset_configure_url = $('#reset-configure-url').data('url');
     var load_configure_url = $('#load-configure-url').data('url');
@@ -410,13 +408,15 @@
                 trigger_mode = data.triggerMode;
                 $('#triggerDelayTime').val(data.triggerDelayTime);
                 $('#triggerCount').val(data.triggerCount);
+                /* $('input[name="trigger"][value="' + data.triggerMode + '"]').trigger('change'); */
 
                 // Update ae_state time
                 $('input[name="ae_state"][value="' + data.ae_state + '"]').prop('checked', true);
-                $('#manualExposureTime').val(data.exposureTime);
+                $('#manualExposureTime').val(data.expose_time);
                 $('#ae_target').attr('min', data.ae_target_range[0])
-                    .attr('max', data.ae_target_range[1])
-                    .val(data.ae_target)
+                               .attr('max', data.ae_target_range[1])
+                               .val(data.ae_target)
+                $('input[name="ae_state"][value="' + data.ae_state + '"]').trigger('change');
 
                 // Update gamma and contrast values and ranges
                 $('#gamma-value').text(data.lut_gamma);
@@ -429,6 +429,25 @@
                     .attr('max', data.lut_contrast_range[1])
                     .val(data.lut_contrast);
 
+                // roi
+                $('#roi-x0-0').val(data.roi0[0]);
+                $('#roi-y0-0').val(data.roi0[1]);
+                $('#roi-x1-0').val(data.roi0[2]);
+                $('#roi-y1-0').val(data.roi0[3]);
+                $('#roi-x0-1').val(data.roi1[0]);
+                $('#roi-y0-1').val(data.roi1[1]);
+                $('#roi-x1-1').val(data.roi1[2]);
+                $('#roi-y1-1').val(data.roi1[3]);
+                if (data.roi0_disabled > 0) {
+                    $('#check-roi-0').prop('disabled', true);
+                } else {
+                    $('#check-roi-0').prop('disabled', false);
+                }
+                if (data.roi1_disabled > 0) {
+                    $('#check-roi-1').prop('disabled', true);
+                } else {
+                    $('#check-roi-1').prop('disabled', false);
+                }
             }
         });
     }

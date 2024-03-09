@@ -131,7 +131,6 @@ $(document).ready(function() {
             },
             success: function(data) {
                 console.log("triggerMode setting success");
-                startPreview();
                 if (!continous_mode_radio.is(':checked')) {
                     $('#start-preview').prop('disabled', true);
                     $('#stop-preview').prop('disabled', true);
