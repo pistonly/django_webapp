@@ -41,4 +41,22 @@ $(document).ready(function() {
             }
         });
     });
+
+    $('#stop-camera-background').click(function () {
+        console.log("stop");
+        $.ajax({
+            url: stop_camera_url,
+            type: 'POST',
+            data: {
+                batch_number: $('#production-input').val()
+            },
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success: function (response) {
+                console.log("start success");
+            }
+        });
+    });
+
 });

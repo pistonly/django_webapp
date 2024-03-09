@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404, render
 from camera.consumers import camera_manager
+from camera.camera_process import run_asyncio_camera_loop
 import random
 from PIL import Image
 import numpy as np
@@ -33,12 +34,14 @@ trigger_process_status = {"runing": None, "batch_num": None}
 @api_view(['POST'])
 def start_camera_background(request):
     global stop_event, trigger_process
+    camera_manager.update_camera_list(start_default=False)
+    camera_manager.close_camera()
     batch_number = request.data.get('batch_number')
     if trigger_process is None or not trigger_process.is_alive():
         stop_event.clear()
-        uri = "ws://localhost:8000/ws/camera/"
-        camera_list = list(camera_manager.camera_dict.keys())
-        trigger_process = Process(target=background_task, args=(uri, batch_number, stop_event, camera_list))
+        camera_list = camera_manager.camera_sn_list
+        trigger_process = Process(target=run_asyncio_camera_loop, args=(camera_list[0],
+                                                                        stop_event))
         trigger_process.start()
         return Response({"processing is started"})
     else:

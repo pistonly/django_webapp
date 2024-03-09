@@ -125,12 +125,12 @@ class cameraManager:
         else:
             return False, f"{str(config_f_path)} is not file"
 
-    def update_camera_list(self):
+    def update_camera_list(self, start_default=True):
         camera_list = get_devInfo_list()
         self.camera_dict = {camera_info.acSn.decode('utf8'): camera_info for camera_info in camera_list}
         self.camera_sn_list = list(self.camera_dict.keys())
         # set default camera
-        if len(self.camera_sn_list):
+        if start_default and len(self.camera_sn_list):
             self.start_camera(self.camera_sn_list[0])
 
     def close_camera(self):
