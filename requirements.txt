@@ -5,3 +5,4 @@ PILLOW
 djangorestframework
 django-photologue
 pytz
+pymodbus

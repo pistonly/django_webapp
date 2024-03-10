@@ -48,8 +48,9 @@ def start_camera_background(request):
     user_name = request.user.username
 
     # check batch number or create new batch_number
-    batch = ProductBatch.objects.get(batch_number=batch_number)
-    if batch is None:
+    try:
+        batch = ProductBatch.objects.get(batch_number=batch_number)
+    except:
         create_new_productBatch(batch_number, user_name)
 
     if trigger_process is None or not trigger_process.is_alive():

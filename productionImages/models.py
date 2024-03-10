@@ -33,21 +33,23 @@ def create_new_gallery(title, description="", is_public=True):
     # 创建Gallery实例
     new_gallery = Gallery.objects.create(
         title=title,
-        title_slug=title.lower().replace(" ", "-"),  # 生成一个简单的slug，实际情况可能需要更复杂的处理以确保唯一性
+        slug=title.lower().replace(" ", "-"),  # 生成一个简单的slug，实际情况可能需要更复杂的处理以确保唯一性
         description=description,
         is_public=is_public,
         date_added=now()  # 使用当前时间作为添加日期
     )
-
-    # 保存Gallery实例到数据库
     new_gallery.save()
 
     return new_gallery
 
 
 def create_new_productBatch(batch_number, operator_name):
-    gallery = create_new_gallery(batch_number)
-    operator = User.objects.get(name=operator_name)
+    try:
+        gallery = Gallery.objects.get(title=batch_number)
+    except:
+        gallery = create_new_gallery(batch_number)
+
+    operator = User.objects.get(username=operator_name)
     new_product = ProductBatch.objects.create(
         batch_number=batch_number,
         gallery=gallery,
