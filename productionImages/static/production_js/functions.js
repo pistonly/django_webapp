@@ -59,7 +59,7 @@
             },
             success: function(data) {
                 $('#production-input').val(data.batch_number);
-                addImagesToDiv(data.urls);
+                // addImagesToDiv(data.urls);
             },
             error: function(xhr, status, error) {
                 console.error("An error occurred: " + error);

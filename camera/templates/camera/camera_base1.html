@@ -1,0 +1,180 @@
+{% extends "camera/camera_base.html" %}
+{% load static %}
+
+{% block camera_setting %}
+<h3 data-target="#camera-setting" data-toggle="collapse" style="cursor: pointer;">相机设置</h3>
+<div id="camera-setting" class="collapse show">
+    <div class="mb-3">
+        <h5 data-target="#resolution-settings" data-toggle="collapse" style="cursor: pointer;">分辨率</h5>
+        <div id="resolution-settings" class="collapse show">
+            <div class="input-group mb-3">
+                <input type="text" class="form-control" placeholder="输入或选择分辨率" id="resolution-input" aria-label="Resolution">
+                <div class="input-group-append">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">选择</button>
+                    <div class="dropdown-menu">
+                        <a class="dropdown-item resolution-option" href="#">1920x1080</a>
+                        <a class="dropdown-item resolution-option" href="#">1280x720</a>
+                        <a class="dropdown-item resolution-option" href="#">640x480</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <h5 data-target="#exposure-settings" data-toggle="collapse" style="cursor: pointer;">曝光设置</h5>
+        <div id="exposure-settings" class="collapse show">
+            <div class="row ml-2">
+                <div class="col-auto form-check">
+                    <input type="radio" name="ae_state" value="1" id="autoExposure" class="form-check-input" checked>
+                    <label class="form-check-label" for="autoExposure">自动曝光</label>
+                </div>
+                <div class="col-auto form-check">
+                    <input type="radio" name="ae_state" value="0" id="manualExposure" class="form-check-input">
+                    <label class="form-check-label" for="manualExposure">手动设置</label>
+                </div>
+            </div>
+            <!-- Auto and manual ae_state settings divs go here -->
+            <div id="auto-exposure-settings" class="mt-2">
+                自动曝光目标数值：<input type="number" class="form-control" id="ae_target" min="0" step="1" value="100">
+            </div>
+
+            <div class="input-group mb-3" style="display: none;" id="manual-exposure-settings">
+                <input type="number" class="form-control" id="manualExposureTime" placeholder="设置曝光时间" aria-label="ae_state Time" min="0" step="1" value="100">
+                <div class="input-group-append">
+                    <span class="input-group-text">us</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="mb-3">
+        <h5 data-target="#triggerMode-settings" data-toggle="collapse" style="cursor: pointer;">触发模式</h5>
+        <div id="triggerMode-settings" class="collapse show">
+            <div class="row ml-2">
+                <div class="col-auto form-check">
+                    <input type="radio" name="trigger" value="0" id="continous-mode" class="form-check-input" checked>
+                    <label class="form-check-label" for="continous-mode">连续触发</label>
+                </div>
+                <div class="col-auto form-check">
+                    <input type="radio" name="trigger" value="1" id="soft-mode" class="form-check-input">
+                    <label class="form-check-label" for="soft-mode">软件触发</label>
+                </div>
+                <div class="col-auto form-check">
+                    <input type="radio" name="trigger" value="2" id="hard-mode" class="form-check-input">
+                    <label class="form-check-label" for="hard-mode">硬件触发</label>
+                </div>
+            </div>
+
+
+            <div class="row ml-2" id="trigger-settings" style="display: none;">
+                <div class="col">
+                    <label for="triggerDelayTime">Delay (ms)</label>
+                    <input type="number" class="form-control" id="triggerDelayTime" placeholder="Delay (ms)" value="1000">
+                </div>
+                <div class="col">
+                    <label for="trigger-count-input">Trigger Count</label>
+                    <input type="number" class="form-control" id="trigger-count-input" placeholder="Trigger Count" value="1">
+                </div>
+                <div class="col">
+                    <button type="button" id="trigger-btn" class="btn btn-primary">Trigger</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="mb-3">
+        <h5 data-target="#gain-settings" data-toggle="collapse" style="cursor: pointer;">增益设置</h5>
+        <div id="gain-settings" class="collapse show">
+            <div id="mapping-table-settings" class="mt-2">
+                gamma：<span id="gamma-value">1.0</span>
+                <input type="range" class="custom-range" id="gamma-range" min="1" max="100" step="1" value="50">
+
+                contrast： <span id="contrast-value">100</span>
+                <input type="range" class="custom-range" id="contrast-range" min="0" max="200" step="1" value="100">
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <h5 data-target="#roi-group-settings" data-toggle="collapse" style="cursor: pointer;">ROI设置</h5>
+        <div id="roi-group-settings" class="collapse show">
+            <div id="roi-settings" class="mt-2">
+                <div class="mt-2">
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <div class="input-group-text">
+                                <input type="checkbox" aria-label="Checkbox for following text input" id="check-roi-0">
+                            </div>
+                        </div>
+                        <div class="input-group-prepend">
+                            <span class="input-group-text" id="">ROI-1:</span>
+                        </div>
+                        <input type="text" class="form-control" placeholder="x0" aria-label="roi-x0-0" id="roi-x0-0">
+                        <input type="text" class="form-control" placeholder="y0" aria-label="roi-y0-0" id="roi-y0-0">
+                        <input type="text" class="form-control" placeholder="x1" aria-label="roi-x1-0" id="roi-x1-0">
+                        <input type="text" class="form-control" placeholder="y1" aria-label="roi-y1-0" id="roi-y1-0">
+                        <div class="input-group-prepend">
+                            <button class="btn btn-outline-secondary" id="roi-button-0" type="button">设置</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-2">
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <div class="input-group-text">
+                                <input type="checkbox" aria-label="Checkbox for following text input" id="check-roi-1">
+                            </div>
+                        </div>
+                        <div class="input-group-prepend">
+                            <span class="input-group-text" id="">ROI-2:</span>
+                        </div>
+                        <input type="text" class="form-control" placeholder="x0" aria-label="roi-x0-1" id="roi-x0-1">
+                        <input type="text" class="form-control" placeholder="y0" aria-label="roi-y0-1" id="roi-y0-1">
+                        <input type="text" class="form-control" placeholder="x1" aria-label="roi-x1-1" id="roi-x1-1">
+                        <input type="text" class="form-control" placeholder="y1" aria-label="roi-y1-1" id="roi-y1-1">
+                        <div class="input-group-prepend">
+                            <button class="btn btn-outline-secondary" id="roi-button-1" type="button">设置</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <h5 data-target="#configure-file-settings" data-toggle="collapse" style="cursor: pointer;">配置文件</h5>
+        <div id="configure-file-settings" class="collapse show">
+
+            <div class="input-group mb-3">
+                <input type="text" class="form-control" placeholder="输入或选择配置文件" id="configure-file" aria-label="configure">
+                <div class="input-group-append">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">选择</button>
+                    <div class="dropdown-menu">
+                        <a class="dropdown-item config-option" href="#">配置1</a>
+                        <a class="dropdown-item config-option" href="#">配置2</a>
+                        <a class="dropdown-item config-option" href="#">配置3</a>
+                        <a class="dropdown-item config-option" href="#">配置4</a>
+                    </div>
+                </div>
+                <div class="input-group-append">
+                    <button class="btn btn-outline-secondary" type="button" id="save-configure">保存</button>
+                </div>
+                <div class="input-group-append">
+                    <button class="btn btn-outline-secondary" type="button" id="load-configure">载入</button>
+                </div>
+                <div class="input-group-append">
+                    <button class="btn btn-outline-secondary" type="button" id="reset-configure">重置</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+</div>
+{% endblock %}

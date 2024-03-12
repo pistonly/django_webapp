@@ -1,115 +1,39 @@
-{% extends "base.html" %}
+{% extends "productionImages/gallery_base.html" %}
 {% load static %}
-{% block title %}
-<title>Production View</title>
-{% endblock %}
 
+{% block product_image_grid %}
+<div class="col-md-7 mb-3" id="product-images">
 
-{% block head_style %}
-
-<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-
-<!-- 引入jQuery -->
-<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-<!-- 引入Popper.js -->
-<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
-<!-- 引入Bootstrap JS -->
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-
-
-<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
-<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-
-
-{% endblock %}
-
-
-{% block content %}
-
-<div class="row">
-    <div class="col-md-7 mb-3" id="product-images">
+    <div class="container mt-2">
+        <!-- 图片行1 -->
+        <div class="row mb-2">
+            <div class="col-2"><img src="https://via.placeholder.com/150" class="img-fluid grid-images"></div>
+            <div class="col-2"><img src="https://via.placeholder.com/150" class="img-fluid grid-images"></div>
+            <div class="col-2"><img src="https://via.placeholder.com/150" class="img-fluid grid-images"></div>
+            <div class="col-2"><img src="https://via.placeholder.com/150" class="img-fluid grid-images"></div>
+            <div class="col-2"><img src="https://via.placeholder.com/150" class="img-fluid grid-images"></div>
+            <div class="col-2"><img src="https://via.placeholder.com/150" class="img-fluid grid-images"></div>
+        </div>
+        <!-- 图片行2 -->
+        <div class="row mb-2">
+            <div class="col-2"><img src="https://via.placeholder.com/150" class="img-fluid grid-images"></div>
+            <div class="col-2"><img src="https://via.placeholder.com/150" class="img-fluid grid-images"></div>
+            <div class="col-2"><img src="https://via.placeholder.com/150" class="img-fluid grid-images"></div>
+            <div class="col-2"><img src="https://via.placeholder.com/150" class="img-fluid grid-images"></div>
+            <div class="col-2"><img src="https://via.placeholder.com/150" class="img-fluid grid-images"></div>
+            <div class="col-2"><img src="https://via.placeholder.com/150" class="img-fluid grid-images"></div>
+        </div>
+        <!-- 图片行3 -->
+        <div class="row mb-2">
+            <div class="col-2"><img src="https://via.placeholder.com/150" class="img-fluid grid-images"></div>
+            <div class="col-2"><img src="https://via.placeholder.com/150" class="img-fluid grid-images"></div>
+            <div class="col-2"><img src="https://via.placeholder.com/150" class="img-fluid grid-images"></div>
+            <div class="col-2"><img src="https://via.placeholder.com/150" class="img-fluid grid-images"></div>
+            <div class="col-2"><img src="https://via.placeholder.com/150" class="img-fluid grid-images"></div>
+            <div class="col-2"><img src="https://via.placeholder.com/150" class="img-fluid grid-images"></div>
+        </div>
     </div>
 
-    <div class="col-md-5 mb-3">
-
-        <h2>AI视觉外观缺陷检测系统</h2>
-        <div class="input-group mb-3">
-            <input type="text" class="form-control" placeholder="添加或选择产品批次" id="production-input" aria-label="Production">
-
-            <div class="input-group-append">
-                <button class="btn btn-outline-secondary" type="button" id="start-camera-background">开始</button>
-                <button class="btn btn-outline-secondary" type="button" id="stop-camera-background">停止</button>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-md-6 mb-2">
-                <div class="input-group">
-                    <span class="input-group-text" id="">操作员:</span>
-                    <input type="text" class="form-control" id="operatorId" placeholder="{{ user_name }}" readonly>
-                </div>
-            </div>
-            <div class="col-md-6 mb-2">
-                <div class="input-group">
-                    <span class="input-group-text" id="">合格率:</span>
-                    <input type="text" class="form-control" id="operatorId" placeholder="1">
-                    <span class="input-group-text">PSC</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-md-6 mb-2">
-                <div class="input-group">
-                    <span class="input-group-text" id="">设备速度:</span>
-                    <input type="text" class="form-control" id="dev-speed" placeholder="100">
-                    <span class="input-group-text">PSC</span>
-                </div>
-            </div>
-
-            <div class="col-md-6 mb-2">
-                <div class="input-group">
-                    <span class="input-group-text" id="">生产速度:</span>
-                    <input type="text" class="form-control" id="product-speed" placeholder="100">
-                    <span class="input-group-text">PSC</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-md-6 mb-2">
-                <div class="input-group">
-                    <span class="input-group-text" id="">合格数量:</span>
-                    <input type="text" class="form-control" id="pass-num" placeholder="100">
-                </div>
-            </div>
-            <div class="col-md-6">
-                <button class="btn btn-secondary w-100" type="button" id="clear-btn" onclick="">清零</button>
-            </div>
-        </div>
-        <img id="origin-image" src="https://placehold.co/600x300" alt="Camera Stream" class="img-fluid rounded">
-
-    </div>
 </div>
-
-<div id="product-image-url" data-url="{% url 'productioin_images' %}" style="display: none;"></div>
-<div id="latest-product-url" data-url="{% url 'latest_product' %}" style="display: none;"></div>
-<div id="search-batch-url" data-url="{% url 'search_batch_number' %}" style="display: none;"></div>
-<div id="start-camera-url" data-url="{% url 'start_camera_background' %}" style="display: none;"></div>
-<div id="stop-camera-url" data-url="{% url 'stop_camera_background' %}" style="display: none;"></div>
-{% endblock %}
-
-{% block endscript %}
-<script>
- var csrftoken = $("[name=csrfmiddlewaretoken]").val();
- const product_image_url = $("#product-image-url").data("url");
- const start_camera_url = $("#start-camera-url").data("url");
- const stop_camera_url = $("#stop-camera-url").data("url");
-
-</script>
-
-<script src="{% static 'production_js/functions.js' %}"></script>
-<script src="{% static 'production_js/document_ready.js' %}"></script>
-
 
 {% endblock %}

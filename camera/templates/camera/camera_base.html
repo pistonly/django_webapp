@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+{% load static %}
+
+
+{% block title %}
+<title>Camera Settings Interface</title>
+{% endblock %}
+
+{% block head_style %}
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
+<!-- 引入jQuery -->
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<!-- 引入Popper.js -->
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+<!-- 引入Bootstrap JS -->
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+<style>
+    /* Custom styles to better match the screenshot */
+    .sidebar {
+        background-color: #FF4500;
+        color: white;
+    }
+
+    .sidebar .nav-item:hover {
+        background-color: #FF5733;
+    }
+
+    .nav-link {
+        color: white;
+    }
+
+    .nav-link.active {
+        background-color: #FF5733;
+    }
+
+    .control-label {
+        margin-right: 10px;
+    }
+
+    .slider {
+        width: auto;
+    }
+
+    .image-region {
+        height: 100%;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .image-container {
+        position: relative;
+        display: inline-block;
+    }
+
+    .drag-handle {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 20px;
+        height: 20px;
+        background-color: #000;
+        cursor: nwse-resize;
+    }
+
+    .info-panel {
+        margin-top: 20px;
+    }
+
+    .roi-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    /* 调整radio标签的外边距，让布局更紧凑 */
+    .form-check {
+        margin-bottom: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div>
+    <div class="row">
+
+        <!-- Sidebar -->
+        <nav class="col-md-2 d-none d-md-block bg-light sidebar">
+            <div class="sidebar-sticky">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text" id="camera-addon"><i class="fa fa-camera"></i></span>
+                            </div>
+                            <select class="custom-select" id="select_camera" aria-label="Example select with camera icon" aria-describedby="camera-addon">
+                                <!-- 相机选项将通过JavaScript动态添加 -->
+                            </select>
+                        </div>
+
+                    </li>
+                    <!-- Other sidebar items -->
+                    <li class="nav-item">
+                        <div>test</div>
+                    </li>
+                </ul>
+            </div>
+            <!-- 在这里添加一个隐藏的div来存储动态生成的URL -->
+            <div id="camera-list-url" data-url="{% url 'camera_list' %}" style="display: none;"></div>
+            <div id="camera-grab-url" data-url="{% url 'camera_grab' %}" style="display: none;"></div>
+            <div id="save-configure-url" data-url="{% url 'save_configure' %}" style="display: none;"></div>
+            <div id="load-configure-url" data-url="{% url 'load_configure' %}" style="display: none;"></div>
+            <div id="reset-configure-url" data-url="{% url 'reset_configure' %}" style="display: none;"></div>
+
+
+        </nav>
+
+        <!-- Main Content -->
+        <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-4">
+            <div class="py-2">
+                <div class="container-fluid">
+                    <div class="row">
+                        {% block preview %}
+                        <div class="col-md-8">
+
+                            <!-- Camera view -->
+                            <div id="imageContainer" class="image-container mb-2">
+                                <img id="camera-image" src="https://placehold.co/600x300" alt="Camera Stream" class="img-fluid rounded">
+                                <canvas id="roiCanvas" class="roi-canvas"></canvas>
+                                <div id="dragHandle" class="drag-handle"></div>
+                            </div>
+                            <div id="infoPanel" class="info-panel" style="display: none;">
+                                <p>Coordinates: <span id="coords">0, 0</span></p>
+                            </div>
+
+                            <!-- Save buttons -->
+                            <div class="row mb-2">
+                                <div class="col-md-12" id="preview-group">
+                                    <button type="button" class="btn btn-secondary" id="start-preview" onclick="startPreview()">预览</button>
+                                    <button type="button" class="btn btn-secondary" id="stop-preview" onclick="stopPreview()">停止</button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endblock %}
+                        {% block setting %}
+
+                        <div class="col-md-4">
+                            {% block camera_setting %}
+                            {% endblock %}
+
+                            {% block plc_setting %}
+                            {% endblock %}
+                        </div>
+
+                        {% endblock %}
+
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+</body>
+
+{% endblock %}
+
+{% block endscript %}
+
+<script>
+    var csrftoken = $("[name=csrfmiddlewaretoken]").val();
+    var save_configure_url = $('#save-configure-url').data('url');
+    var reset_configure_url = $('#reset-configure-url').data('url');
+    var load_configure_url = $('#load-configure-url').data('url');
+    var camera_list_url = $("#camera-list-url").data("url");
+
+    var ws;
+    var trigger_mode = 0;
+
+
+    function getCameraList() {
+
+        // Use jQuery's ajax method to fetch data
+        $.ajax({
+            url: camera_list_url,
+            type: 'GET',
+            dataType: 'json',
+            success: function(data) {
+                const cameras = data.cameras;
+                const selectCamera = $("#select_camera");
+
+                // Clear existing options using jQuery
+                selectCamera.empty();
+
+                // Add new options for each camera
+                cameras.forEach(function(camera) {
+                    selectCamera.append($('<option></option>').val(camera).text(camera));
+                });
+
+                // Default to the first camera, if available
+                if (cameras.length > 0) {
+                    selectCamera.val(cameras[0]);
+                }
+                // 
+                getCameraParameters();
+            },
+            error: function(xhr, status, error) {
+                console.error('Error fetching camera list:', error);
+            }
+        });
+    }
+
+
+    function getCameraParameters() {
+        console.log($('#select_camera').val());
+        $.ajax({
+            url: '/api/camera/parameters/',
+            type: 'GET',
+            data: {
+                camera_id: $('#select_camera').val()
+            },
+            success: function(data) {
+                // 处理数据...
+                console.log(data);
+                // Update resolution input
+                $('#resolution-input').val(data.resolution.w + 'x' + data.resolution.h);
+
+                // Update trigger mode radios
+                $('input[name="trigger"][value="' + data.triggerMode + '"]').prop('checked', true);
+                trigger_mode = data.triggerMode;
+                $('#triggerDelayTime').val(data.triggerDelayTime);
+                $('#triggerCount').val(data.triggerCount);
+                /* $('input[name="trigger"][value="' + data.triggerMode + '"]').trigger('change'); */
+
+                // Update ae_state time
+                $('input[name="ae_state"][value="' + data.ae_state + '"]').prop('checked', true);
+                $('#manualExposureTime').val(data.expose_time);
+                $('#ae_target').attr('min', data.ae_target_range[0])
+                    .attr('max', data.ae_target_range[1])
+                    .val(data.ae_target)
+                $('input[name="ae_state"][value="' + data.ae_state + '"]').trigger('change');
+
+                // Update gamma and contrast values and ranges
+                $('#gamma-value').text(data.lut_gamma);
+                $('#gamma-range').attr('min', data.lut_gamma_range[0])
+                    .attr('max', data.lut_gamma_range[1])
+                    .val(data.lut_gamma);
+
+                $('#contrast-value').text(data.lut_contrast);
+                $('#contrast-range').attr('min', data.lut_contrast_range[0])
+                    .attr('max', data.lut_contrast_range[1])
+                    .val(data.lut_contrast);
+
+                // roi
+                $('#roi-x0-0').val(data.roi0[0]);
+                $('#roi-y0-0').val(data.roi0[1]);
+                $('#roi-x1-0').val(data.roi0[2]);
+                $('#roi-y1-0').val(data.roi0[3]);
+                $('#roi-x0-1').val(data.roi1[0]);
+                $('#roi-y0-1').val(data.roi1[1]);
+                $('#roi-x1-1').val(data.roi1[2]);
+                $('#roi-y1-1').val(data.roi1[3]);
+                if (data.roi0_disabled > 0) {
+                    $('#check-roi-0').prop('disabled', true);
+                } else {
+                    $('#check-roi-0').prop('disabled', false);
+                }
+                if (data.roi1_disabled > 0) {
+                    $('#check-roi-1').prop('disabled', true);
+                } else {
+                    $('#check-roi-1').prop('disabled', false);
+                }
+            }
+        });
+    }
+</script>
+<script src="{% static 'js/preview.js' %}"></script>
+<script src="{% static 'js/document_ready.js' %}"></script>
+<script src="{% static 'js/roi.js' %}"></script>
+<script src="{% static 'js/document_ready_plc.js' %}"></script>
+{% endblock %}

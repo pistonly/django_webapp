@@ -22,9 +22,48 @@ function searchProduct(){
     });
 }
 
+var ws;
+
+function startWS() {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        console.log("WebSocket is already connected.");
+        return; // Exit the function to prevent a new connection
+    }
+
+    ws = new WebSocket("ws://" + window.location.host + "/ws/camera/");
+
+    ws.onopen = function (e) {
+        console.log("Connection established!");
+    };
+
+    ws.onmessage = function (e) {
+        var data = JSON.parse(e.data);
+        $("#camera-image").attr("src", "data:image/jpeg;base64," + data.frame);
+    };
+
+    ws.onerror = function (e) {
+        console.error("WebSocket error: ", e);
+    };
+
+    ws.onclose = function (e) {
+        console.log("WebSocket closed");
+    };
+    $('#start-preview').prop('disabled', false);
+    $('#stop-preview').prop('disabled', true);
+}
+
+
 $(document).ready(function() {
     getLatestProduct();
     searchProduct();
+
+    $('.grid-images').click(function () {
+        const url = $(this).data('original-url');
+        const title = $(this).data('title');
+        $("#origin-image").attr("src", url);
+        $("#origin-image").attr("alt", title);
+    });
+
     $('#start-camera-background').click(function (){
         console.log("start");
         $.ajax({

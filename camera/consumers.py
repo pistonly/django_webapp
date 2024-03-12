@@ -12,6 +12,9 @@ import io
 import cv2
 import time
 from pathlib import Path
+from .models import ProductBatchV2
+from photologue.models import Gallery
+
 
 
 current_dir = Path(__file__).resolve().parent
@@ -196,12 +199,27 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
         print("connected")
         self.camera_feed_task = None
         self.preview = False
+        self.product_show = False
+        self.camera_last_photo = []
+        self.gallerys = []
+        self.product_show_task = None
 
     async def receive(self, text_data=None, bytes_data=None):
         # 这里可以根据需要处理接收到的数据
         print(f"received data: {text_data}, bytes: {bytes_data}")
         text_data_json = json.loads(text_data)
         self.trigger_mode = text_data_json.get('trigger_mode')
+
+        product_show = text_data_json.get("product_show")
+        if product_show is not None:
+            self.product_show = True
+            batch_number = text_data_json.get("batch_number")
+            productureBatch = ProductBatchV2.objects.get(batch_number=batch_number)
+            camera_num = productureBatch.camera_num
+            for i in range(camera_num):
+                self.gallerys.append(Gallery.objects.get(title=f"{batch_number}_{i}"))
+            asyncio.create_task(self.product_feed())
+            return 
 
         if camera_manager.current_camera.get('sn') is None:
             print(f"current camera is None")
@@ -263,7 +281,12 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
             print("camera feed cancelled")
             pass
 
+    async def product_feed(self):
+        pass
+
     async def disconnect(self, close_code):
+        self.product_show = False
+
         # 取消之前创建的任务
         if self.camera_feed_task:
             self.preview = False

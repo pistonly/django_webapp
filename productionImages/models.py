@@ -14,6 +14,16 @@ class ProductBatch(models.Model):
     def __str__(self):
         return self.batch_number
 
+class ProductBatchV2(models.Model):
+    batch_number = models.CharField(max_length=100, unique=True)
+    operator = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='product_batches')
+    production_date = models.DateField()
+    camera_num = models.IntegerField()
+
+    def __str__(self):
+        return self.batch_number
+
+
 
 def upload_one_image(image_io, img_name, batch_number, mime_type='img/jpeg'):
     print("upload one image")
@@ -57,4 +67,21 @@ def create_new_productBatch(batch_number, operator_name):
         production_date=now())
 
     new_product.save()
+    return new_product
+
+def create_new_productBatch_v2(batch_number, operator_name, camera_num=18):
+    
+    operator = User.objects.get(username=operator_name)
+    new_product = ProductBatchV2(batch_number=batch_number,
+                                 operator=operator,
+                                 production_date=now(),
+                                 camera_num=camera_num)
+    new_product.save()
+
+    for i in range(camera_num):
+        gallery_title = f"{batch_number}_{i}"
+        try:
+            gallery = Gallery.objects.get(title=gallery_title)
+        except:
+            gallery = create_new_gallery(gallery_title)
     return new_product
