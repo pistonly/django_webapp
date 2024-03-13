@@ -21,6 +21,7 @@ from channels.auth import AuthMiddlewareStack
 from channels.routing import ProtocolTypeRouter, URLRouter
 from django.core.asgi import get_asgi_application
 import camera.routing
+import productionImages.routing
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "mysite.settings")
 # Initialize Django ASGI application early to ensure the AppRegistry
@@ -31,7 +32,7 @@ application = ProtocolTypeRouter(
     {
         "http": django_asgi_app,
         "websocket": AuthMiddlewareStack(
-            URLRouter(camera.routing.websocket_urlpatterns),
+            URLRouter(camera.routing.websocket_urlpatterns + productionImages.routing.websocket_urlpatterns),
 
         ),
     }

@@ -4,7 +4,7 @@ from camera.camera_process import run_asyncio_camera_loop
 import random
 from PIL import Image
 import numpy as np
-from .models import ProductBatch, create_new_productBatch
+from .models import ProductBatchV2, create_new_productBatch_v2
 import time
 import multiprocessing
 from multiprocessing import Process
@@ -46,20 +46,24 @@ def start_camera_background(request):
     camera_manager.close_camera()
     batch_number = request.data.get('batch_number')
     user_name = request.user.username
+    ws_uri = request.data.get("uri")
+    upload_url = request.data.get("upload_url")
 
     # check batch number or create new batch_number
     try:
-        batch = ProductBatch.objects.get(batch_number=batch_number)
+        batch = ProductBatchV2.objects.get(batch_number=batch_number)
     except:
-        create_new_productBatch(batch_number, user_name)
+        create_new_productBatch_v2(batch_number, user_name)
 
     if trigger_process is None or not trigger_process.is_alive():
-        stop_event.clear()
         camera_list = camera_manager.camera_sn_list
-        trigger_process = Process(target=run_asyncio_camera_loop, args=(batch_number,
-                                                                        camera_list[0],
-                                                                        stop_event))
-        trigger_process.start()
+        for sn in camera_list:
+            trigger_process = Process(target=run_asyncio_camera_loop, args=(
+                sn,
+                batch_number,
+                ws_uri,
+                upload_url))
+            trigger_process.start()
         return Response({"processing is started"})
     else:
         return Response({"processing is running"})
@@ -82,30 +86,49 @@ def stop_camera_background(request):
 def productionImages(request):
     batch_number = request.data.get("batch_number")
     if batch_number == "-1":
-        batch = ProductBatch.objects.latest("production_date")
+        batch = ProductBatchV2.objects.latest("production_date")
     else:
-        batch = ProductBatch.objects.get(batch_number=batch_number)
-    photos = batch.gallery.photos.all()
-    urls = [{"url": photo.image.url, "thumbnail": photo.get_display_url(), "title": photo.title} for photo in photos]
-    return Response(urls)
+        batch = ProductBatchV2.objects.get(batch_number=batch_number)
+    if batch:
+        camera_num = batch.camera_num
+        photo_list = []
+        for i in range(camera_num):
+            gallery = Gallery.objects.get(title=f"{batch.batch_number}_{i}")
+            photo = gallery.photos.latest("date_added")
+            if photo:
+                photo_list.append({"url": photo.image.url, "thumbnail": photo.get_display_url(), "title": photo.title})
+
+        data = {'batch_number': batch.batch_number, 'urls': photo_list}
+        return Response(data)
+    else:
+        return Response({'batch_number': "", "urls": []})
 
 @login_required
 @api_view(['POST'])
 def latest_product(request):
-    batch = ProductBatch.objects.latest("production_date")
-    photos = batch.gallery.photos.all()
-    urls = [{"url": photo.image.url, "thumbnail": photo.get_display_url(), "title": photo.title} for photo in photos]
-    data = {'batch_number': batch.batch_number, 'urls': urls}
-    return Response(data)
+    batch = ProductBatchV2.objects.latest("production_date")
+    if batch: 
+        camera_num = batch.camera_num
+        photo_list = []
+        for i in range(camera_num):
+            gallery = Gallery.objects.get(title=f"{batch.batch_number}_{i}")
+            photo = gallery.photos.latest("date_added")
+            if photo:
+                photo_list.append({"url": photo.image.url, "thumbnail": photo.get_display_url(), "title": photo.title})
+
+        data = {'batch_number': batch.batch_number, 'urls': photo_list}
+        return Response(data)
+    else:
+        return Response({'batch_number': "", "urls": []})
 
 
 @login_required
 @api_view(['GET'])
 def batchNumberSearch(request):
     query = request.GET.get('term', '')
-    batches = ProductBatch.objects.filter(batch_number__icontains=query)
+    batches = ProductBatchV2.objects.filter(batch_number__icontains=query)
     if not len(batches):
-        batches = ProductBatch.objects.all().order_by('-production_date')[:5]
+        batches = ProductBatchV2.objects.all().order_by('-production_date')[:5]
     results = [batch.batch_number for batch in batches]
 
     return Response(results)
@@ -114,8 +137,8 @@ def batchNumberSearch(request):
 class GalleryImageUploadAPIView(APIView):
     parser_classes = (MultiPartParser,)
 
-    def post(self, request, *args, **kwargs):
-        batch_number = request.data.get('batch_number')  # 假设前端在请求中传递gallery_id
+    def post_old(self, request, *args, **kwargs):
+        batch_number = request.data.get('batch_number') 
         serializer = PhotoUploadSerializer(data=request.data)
         
         if not batch_number:
@@ -134,3 +157,21 @@ class GalleryImageUploadAPIView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+    def post(self, request, *args, **kwargs):
+        gallery_title = request.data.get('gallery_title') 
+        serializer = PhotoUploadSerializer(data=request.data)
+        
+        if not gallery_title:
+            return Response({"error": "Missing gallery_title"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            gallery = Gallery.objects.get(title=gallery_title)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
+
+        if serializer.is_valid():
+            photo = serializer.save()
+            batch.gallery.photos.add(photo)  # 将图片添加到指定的Gallery中
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

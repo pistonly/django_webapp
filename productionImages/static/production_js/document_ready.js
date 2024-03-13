@@ -23,6 +23,7 @@ function searchProduct(){
 }
 
 var ws;
+var ws_plc;
 
 function startWS() {
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -38,7 +39,10 @@ function startWS() {
 
     ws.onmessage = function (e) {
         var data = JSON.parse(e.data);
-        $("#camera-image").attr("src", "data:image/jpeg;base64," + data.frame);
+        $(data.img_id).attr({src: data.thumbnail,
+                             alt: data.title,
+                             'data-original-url': data.url,
+                             'data-title': data.title});
     };
 
     ws.onerror = function (e) {
@@ -48,8 +52,17 @@ function startWS() {
     ws.onclose = function (e) {
         console.log("WebSocket closed");
     };
-    $('#start-preview').prop('disabled', false);
-    $('#stop-preview').prop('disabled', true);
+
+    ws_plc = new WebSocket("ws://" +window.location.host + "/ws/plc_check/");
+    ws_plc.onopen = function(e) {
+        console.log("ws plc connection established");
+        ws_plc.send(JSON.stringify({client_id: 'web'}));
+    };
+
+    ws_plc.onclose = function (e) {
+        console.log("WebSocket closed");
+    };
+
 }
 
 
@@ -60,8 +73,8 @@ $(document).ready(function() {
     $('.grid-images').click(function () {
         const url = $(this).data('original-url');
         const title = $(this).data('title');
-        $("#origin-image").attr("src", url);
-        $("#origin-image").attr("alt", title);
+        $("#origin-image").attr({src: url,
+                                 alt: title});
     });
 
     $('#start-camera-background').click(function (){
@@ -70,7 +83,9 @@ $(document).ready(function() {
             url: start_camera_url,
             type: 'POST',
             data: {
-                batch_number: $('#production-input').val()
+                batch_number: $('#production-input').val(),
+                uri: "ws://" + window.location.host + "/ws/camera/",
+                upload_url: $('#upload-url').data('url')
             },
             beforeSend: function (xhr) {
                 xhr.setRequestHeader("X-CSRFToken", csrftoken);
@@ -83,19 +98,9 @@ $(document).ready(function() {
 
     $('#stop-camera-background').click(function () {
         console.log("stop");
-        $.ajax({
-            url: stop_camera_url,
-            type: 'POST',
-            data: {
-                batch_number: $('#production-input').val()
-            },
-            beforeSend: function (xhr) {
-                xhr.setRequestHeader("X-CSRFToken", csrftoken);
-            },
-            success: function (response) {
-                console.log("start success");
-            }
-        });
+        if (ws && ws.readyState === WebSocket.OPEN){
+            ws.send("stop");
+        }
     });
 
 });

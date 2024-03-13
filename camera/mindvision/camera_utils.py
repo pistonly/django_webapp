@@ -8,6 +8,7 @@ roi0 = [0, 0, 1280, 720]
 roi1 = [0, 0, 1920, 1080]
 roi0_disabled = 1
 roi1_disabled = 1
+name = 'camera_0'
 
 def get_devInfo_list()-> list:
     return mvsdk.CameraEnumerateDevice()
@@ -77,9 +78,10 @@ def close_camera(hCamera, pFrameBuffer):
 
 def get_camera_parameters(hCamera, cap):
     parameters = {}
-    # get roi
+    # get roi & name
     parameters.update({"roi0": roi0, "roi1": roi1,
-                       'roi0_disabled': roi0_disabled, 'roi1_disabled': roi1_disabled})
+                       'roi0_disabled': roi0_disabled, 'roi1_disabled': roi1_disabled,
+                       'name': name})
     # get resolution
     psCurVideoSize = mvsdk.CameraGetImageResolution(hCamera)
     parameters.update({"resolution": {"w": psCurVideoSize.iWidth, "h": psCurVideoSize.iHeight}})
@@ -166,6 +168,10 @@ def get_camera_parameters(hCamera, cap):
 
 def set_camera_parameter(hCamera, **kwargs):
     print(kwargs)
+    if "name" in kwargs:
+        global name
+        name = kwargs['name']
+
     if "roi0" in kwargs:
         global roi0
         roi0 = [int(v) for v in kwargs['roi0']]

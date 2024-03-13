@@ -204,6 +204,18 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
         self.gallerys = []
         self.product_show_task = None
 
+    async def init_product_show(self, batch_number):
+        self.product_show = True
+        self.gallerys = []
+        productureBatch = ProductBatchV2.objects.get(batch_number=batch_number)
+        camera_num = productureBatch.camera_num
+        for i in range(camera_num):
+            gallery = Gallery.objects.get(title=f"{batch_number}_{i}")
+            self.gallerys.append(gallery)
+            self.camera_last_photo.append(None)
+
+
+
     async def receive(self, text_data=None, bytes_data=None):
         # 这里可以根据需要处理接收到的数据
         print(f"received data: {text_data}, bytes: {bytes_data}")
@@ -212,14 +224,13 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
 
         product_show = text_data_json.get("product_show")
         if product_show is not None:
-            self.product_show = True
             batch_number = text_data_json.get("batch_number")
-            productureBatch = ProductBatchV2.objects.get(batch_number=batch_number)
-            camera_num = productureBatch.camera_num
-            for i in range(camera_num):
-                self.gallerys.append(Gallery.objects.get(title=f"{batch_number}_{i}"))
+            if batch_number is None:
+                print("batch_number can't be found")
+                return
+            await self.init_product_show(batch_number)
             asyncio.create_task(self.product_feed())
-            return 
+            return
 
         if camera_manager.current_camera.get('sn') is None:
             print(f"current camera is None")
@@ -282,7 +293,19 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
             pass
 
     async def product_feed(self):
-        pass
+        try:
+            while self.product_show:
+                for i, gallery in enumerate(self.gallerys):
+                    photo = gallery.photos.latest("date_added")
+                    if photo.title != self.camera_last_photo[i]:
+                        row = i % 6
+                        col = i // 3
+                        data = {"url": photo.image.url, "thumbnail": photo.get_display_url(), "title": photo.title, "img_id": f"r-{row}-c-{col}"}
+                        self.camera_last_photo[i] = photo.title
+                        await self.send(text_data=json.dumps(data))
+                await asyncio.sleep(0.1)
+        except asyncio.CancelledError:
+            print("product feed cancelled")
 
     async def disconnect(self, close_code):
         self.product_show = False
