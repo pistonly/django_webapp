@@ -12,7 +12,7 @@ import io
 import cv2
 import time
 from pathlib import Path
-from .models import ProductBatchV2
+from productionImages.models import ProductBatchV2
 from photologue.models import Gallery
 
 

@@ -16,7 +16,7 @@ class ProductBatch(models.Model):
 
 class ProductBatchV2(models.Model):
     batch_number = models.CharField(max_length=100, unique=True)
-    operator = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='product_batches')
+    operator = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='product_batches_op')
     production_date = models.DateField()
     camera_num = models.IntegerField()
 
