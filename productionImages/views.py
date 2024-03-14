@@ -1,6 +1,6 @@
 from django.shortcuts import get_object_or_404, render
 from camera.consumers import camera_manager
-from camera.camera_process import run_asyncio_camera_loop
+from camera.camera_process_with_ws import run_asyncio_camera_loop
 import random
 from PIL import Image
 import numpy as np
@@ -53,7 +53,9 @@ def start_camera_background(request):
     try:
         batch = ProductBatchV2.objects.get(batch_number=batch_number)
     except:
-        create_new_productBatch_v2(batch_number, user_name)
+        batch = create_new_productBatch_v2(batch_number, user_name)
+
+    camera_num = batch.camera_num
 
     if trigger_process is None or not trigger_process.is_alive():
         camera_list = camera_manager.camera_sn_list
@@ -64,6 +66,16 @@ def start_camera_background(request):
                 ws_uri,
                 upload_url))
             trigger_process.start()
+        # start random camera 
+        if len(camera_list) < camera_num:
+            for _ in range(camera_num - len(camera_list)):
+                trigger_process = Process(target=run_asyncio_camera_loop, args=(
+                    "",
+                    batch_number,
+                    ws_uri,
+                    upload_url))
+                trigger_process.start()
+
         return Response({"processing is started"})
     else:
         return Response({"processing is running"})
@@ -85,11 +97,11 @@ def stop_camera_background(request):
 @api_view(['POST'])
 def productionImages(request):
     batch_number = request.data.get("batch_number")
-    if batch_number == "-1":
-        batch = ProductBatchV2.objects.latest("production_date")
-    else:
-        batch = ProductBatchV2.objects.get(batch_number=batch_number)
-    if batch:
+    try:
+        if batch_number == "-1":
+            batch = ProductBatchV2.objects.latest("production_date")
+        else:
+            batch = ProductBatchV2.objects.get(batch_number=batch_number)
         camera_num = batch.camera_num
         photo_list = []
         for i in range(camera_num):
@@ -100,25 +112,26 @@ def productionImages(request):
 
         data = {'batch_number': batch.batch_number, 'urls': photo_list}
         return Response(data)
-    else:
-        return Response({'batch_number': "", "urls": []})
+    except Exception as e:
+        return Response({'batch_number': "", "urls": [], 'message': str(e)})
 
 @login_required
 @api_view(['POST'])
 def latest_product(request):
-    batch = ProductBatchV2.objects.latest("production_date")
-    if batch: 
+    try:
+        batch = ProductBatchV2.objects.latest("production_date")
         camera_num = batch.camera_num
         photo_list = []
         for i in range(camera_num):
             gallery = Gallery.objects.get(title=f"{batch.batch_number}_{i}")
             photo = gallery.photos.latest("date_added")
-            if photo:
-                photo_list.append({"url": photo.image.url, "thumbnail": photo.get_display_url(), "title": photo.title})
+            row, col = i % 3, i // 3
+            photo_list.append({"url": photo.image.url, "thumbnail": photo.get_display_url(),
+                               "title": photo.title, "img_id": f"r-{row}-c-{col}"})
 
         data = {'batch_number': batch.batch_number, 'urls': photo_list}
         return Response(data)
-    else:
+    except:
         return Response({'batch_number': "", "urls": []})
 
 

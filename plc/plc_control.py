@@ -32,10 +32,6 @@ import time
 #修改为plc的ip
 plc_ip= "192.168.1.5"
 
-#创建modbus客户端
-client = ModbusTcpClient(plc_ip)
-
-#TODO: client.close()
 
 
 def get_register(name:str):
@@ -58,14 +54,14 @@ def get_register(name:str):
 class plcControl(object):
     def __init__(self, ip="192.168.1.5") -> None:
         self.client = ModbusTcpClient(ip)
-        self.connect()
+        # self.connect()
 
     def connected(self):
         self.connect()
         return self.client.connected
 
     def connect(self):
-        self.client.connect()
+        return self.client.connect()
 
     def close(self):
         if self.client is not None:

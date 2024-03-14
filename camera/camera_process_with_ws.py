@@ -1,11 +1,20 @@
 import asyncio
 import websockets
-import aiohttp
-import cv2
+import io
+from PIL import Image
+import uuid
+from datetime import datetime
 from .mindvision.camera_utils import get_devInfo_list, get_one_frame, image_to_numpy, initialize_cam, close_camera, set_camera_parameter, get_camera_parameters, save_image, softTrigger
 from websockets.exceptions import ConnectionClosed
+import numpy as np
+import aiohttp
+import json
+from pathlib import Path
 
 
+
+current_dir = Path(__file__).resolve().parent
+configure_dir = current_dir / 'configure'
 
 def get_one_image(camera):
     # softTrigger
@@ -18,6 +27,14 @@ def get_one_image(camera):
     buffer = io.BytesIO()
     frame.save(buffer, format='JPEG')
     return buffer
+
+def get_random_image():
+    frame = np.random.randint(0, 255, (640, 640), dtype=np.uint8)
+    frame = Image.fromarray(frame.astype(np.uint8))
+    buffer = io.BytesIO()
+    frame.save(buffer, format='JPEG')
+    return buffer
+    
 
 
 def prepare_one_image(img_io, gallery_title, camera_info):
@@ -36,30 +53,52 @@ def prepare_one_image(img_io, gallery_title, camera_info):
         roi_str += f"{roi1[0]:04d}{roi1[1]:04d}{roi1[2]:04d}{roi1[3]:04d}"
     file_title = f"{gallery_title}_{formatted_time}_{roi_str}.jpg"
 
-    files = {"image": (file_title, img_io.getvalue(), 'image/jpeg')}
+    # files = {"image": (file_title, img_io.getvalue(), 'image/jpeg')}
     data = {
         "title": file_title, 
         "caption": "a solar image",
         "gallery_title": gallery_title, 
-        'slug': unique_slug
+        'slug': unique_slug,
     }
-    return files, data
+    return img_io, data
 
 
 async def capture_and_upload(camera, gallery_title, url):
-    img_buf = get_one_image(camera)
-    files, data = prepare_one_image(img_io, gallery_title, camera['camera_info'])
+    if camera['handle'] is None:
+        img_io = get_random_image()
+    else:
+        img_io = get_one_image(camera)
+    _, data = prepare_one_image(img_io, gallery_title, camera['camera_info'])
     async with aiohttp.ClientSession() as session:
-        async with session.post(url, files=files, data=data) as response:
+        form_data = aiohttp.FormData()
+        for key, value in data.items():
+            form_data.add_field(key, value)
+        form_data.add_field(
+            'image',
+            img_io.getvalue(),
+            filename=data['title'],
+            content_type='image/jpeg'
+        )
+        async with session.post(url, data=form_data) as response:
             print(await response.text())
 
 async def websocket_client(camera, gallery_title, uri, upload_url):
     try:
         async with websockets.connect(uri) as websocket:
             # send id
-            await websocket.send(json.dumps({"client_id": gallery_title}))
+            if camera['handle'] is None:
+                message = {"client_id": gallery_title, "update": 1}
+            else:
+                message = {"client_id": gallery_title}
+            await websocket.send(json.dumps(message))
             response = await websocket.recv()
-            print(response)
+            try:
+                # get camera_id from ws server
+                response = json.loads(response)
+                gallery_title = response['client_id']
+            except:
+                pass
+
 
             while True:
                 message = await websocket.recv()
@@ -78,12 +117,17 @@ async def websocket_client(camera, gallery_title, uri, upload_url):
 
 
 async def main(camera:dict, gallery_title:str, ws_uri: str, upload_url: str):
-    await websocket_client(uri, upload_url)
+    await websocket_client(camera, gallery_title, ws_uri, upload_url)
 
 
 def run_asyncio_camera_loop(camera_sn: str, batch_number:str, ws_uri:str, upload_url: str):
     # start camera, and load configure
-    camera = None
+    camera = {}
+    if len(camera_sn) == 0:
+        camera = {"handle": None, 'camera_info': {"roi0": [], "roi1": [], "roi0_disabled": True, "roi1_disabled": True}}
+        gallery_title = batch_number
+        asyncio.run(main(camera, gallery_title, ws_uri, upload_url))
+
     try:
         camera_list = get_devInfo_list()
         for camera_info in camera_list:
@@ -110,6 +154,6 @@ def run_asyncio_camera_loop(camera_sn: str, batch_number:str, ws_uri:str, upload
         print(f"camera process error: {str(e)}")
 
     finally:
-        if camera:
+        if camera['handle'] is not None:
             close_camera(camera['handle'], camera['pb'])
 

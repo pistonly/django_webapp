@@ -296,13 +296,15 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
         try:
             while self.product_show:
                 for i, gallery in enumerate(self.gallerys):
-                    photo = gallery.photos.latest("date_added")
-                    if photo.title != self.camera_last_photo[i]:
-                        row = i % 6
-                        col = i // 3
-                        data = {"url": photo.image.url, "thumbnail": photo.get_display_url(), "title": photo.title, "img_id": f"r-{row}-c-{col}"}
-                        self.camera_last_photo[i] = photo.title
-                        await self.send(text_data=json.dumps(data))
+                    try:
+                        photo = gallery.photos.latest("date_added")
+                        if photo.title != self.camera_last_photo[i]:
+                            row, col = i % 3, i // 3
+                            data = {"url": photo.image.url, "thumbnail": photo.get_display_url(), "title": photo.title, "img_id": f"r-{row}-c-{col}"}
+                            self.camera_last_photo[i] = photo.title
+                            await self.send(text_data=json.dumps(data))
+                    except Exception as e:
+                        print(f"product feed error: {e}")
                 await asyncio.sleep(0.1)
         except asyncio.CancelledError:
             print("product feed cancelled")

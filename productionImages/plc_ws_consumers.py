@@ -5,13 +5,32 @@ from plc.plc_control import plcControl
 from channels.layers import get_channel_layer
 
 
-channel_layer = get_channel_layer()
+
+def get_client_id(data:dict, connected_clients:dict):
+    '''
+    return: client_id, gallery_id
+    '''
+    if data['client_id'] == "web":
+        return "web", None
+    else:
+        if "update" in data:
+            for i in range(18):
+                client_id = f"{data['client_id']}_{i}"
+                if client_id not in connected_clients:
+                    return client_id, i
+        else:
+            gallery_id = int(data['client_id'].split("_"))
+            return data['client_id'], gallery_id
+
 
 class PLCControlConsumer(AsyncWebsocketConsumer):
     connected_clients = {}
     plc_check_task = None
+    channel_layer = get_channel_layer()
 
     async def connect(self):
+
+        await self.accept()
         if self.plc_check_task is None:
             self.plc_check_task = asyncio.create_task(self.check_plc_reg())
 
@@ -22,15 +41,19 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                 break
 
         # remove from group
-        if gallery_id < 9:
-            group_name = "front"
-        else:
-            group_name = "back"
+        try:
+            gallery_id = int(self.client_id.split("_")[-1])
+            if gallery_id < 9:
+                group_name = "front"
+            else:
+                group_name = "back"
 
-        await self.channel_layer.group_discard(
-            group_name,
-            self.channel_name
-        )
+            await self.channel_layer.group_discard(
+                group_name,
+                self.channel_name
+            )
+        except Exception as e:
+            print(e)
 
         # task
         if self.plc_check_task is not None:
@@ -38,27 +61,32 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         data = json.loads(text_data)
+        print("-----------------------------")
+        print(data)
+        print("-----------------------------")
 
         if 'client_id' in data:
-            self.client_id = data['client_id']
-            self.connected_clients[self.client_id] = self
+            self.client_id, gallery_id = get_client_id(data, self.connected_clients)
             if self.client_id not in self.connected_clients:
-                # add group
-                gallery_id = int(self.client_id.split("_")[-1])
-                if gallery_id < 9:
-                    group_name = "front"
-                    await self.channel_layer.group_add(
-                        group_name,
-                        self.channel_name
-                    )
-                else:
-                    group_name = "back"
-                    await self.channel_layer.group_add(
-                        group_name,
-                        self.channel_name
-                    )
+                print("-------------------------------")
+                print(self.client_id)
+                print("-------------------------------")
 
-                await self.accept()
+                self.connected_clients[self.client_id] = self
+                # # add group
+                # if gallery_id is not None and gallery_id < 9:
+                #     group_name = "front"
+                #     await self.channel_layer.group_add(
+                #         group_name,
+                #         self.channel_name
+                #     )
+                # elif gallery_id is not None:
+                #     group_name = "back"
+                #     await self.channel_layer.group_add(
+                #         group_name,
+                #         self.channel_name
+                #     )
+
                 await self.send(text_data=json.dumps({"status": "connected", "client_id": self.client_id}))
             else:
                 await self.send(text_data=json.dumps({"status": "wrong id"}))
@@ -74,27 +102,35 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
     async def check_plc_reg(self):
         plc = plcControl()
         while True:
-            M1_val = plc.get_M("M1")
+            if not plc.connect():
+                await asyncio.sleep(0.02)
+                continue
+            # M1_val = plc.get_M("M1")
+            M1_val = 1
             if M1_val:
+                print("here")
+                M1_val = 0
                 plc.set_M("M1", 0)
-                await channel_layer.group_send(
-                    "front",
-                    {
-                        "type": "group_message",
-                        "message": "trig"
-                    }
-                )
+                for i, client in self.connected_clients.items():
+                    await client.send("trig")
+                # await self.channel_layer.group_send(
+                #     "front",
+                #     {
+                #         "type": "group_message",
+                #         "message": "trig"
+                #     }
+                # )
             M4_val = plc.get_M("M4")
             if M4_val:
                 plc.set_M("M4", 0)
-                await channel_layer.group_send(
-                    "back",
-                    {
-                        "type": "group_message",
-                        "message": "trig"
-                    }
-                )
-            await asyncio.sleep(0.02)
+                # await self.channel_layer.group_send(
+                #     "back",
+                #     {
+                #         "type": "group_message",
+                #         "message": "trig"
+                #     }
+                # )
+            await asyncio.sleep(1)
 
 
     async def group_message(self, event):

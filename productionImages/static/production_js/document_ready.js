@@ -34,7 +34,7 @@ function startWS() {
     ws = new WebSocket("ws://" + window.location.host + "/ws/camera/");
 
     ws.onopen = function (e) {
-        console.log("Connection established!");
+        console.log("ws Connection established!");
     };
 
     ws.onmessage = function (e) {
@@ -54,9 +54,9 @@ function startWS() {
     };
 
     ws_plc = new WebSocket("ws://" +window.location.host + "/ws/plc_check/");
-    ws_plc.onopen = function(e) {
-        console.log("ws plc connection established");
+    ws_plc.onopen = function() {
         ws_plc.send(JSON.stringify({client_id: 'web'}));
+        console.log("ws plc connection established");
     };
 
     ws_plc.onclose = function (e) {
@@ -66,9 +66,10 @@ function startWS() {
 }
 
 
-$(document).ready(function() {
+$(document).ready(function () {
     getLatestProduct();
     searchProduct();
+    startWS();
 
     $('.grid-images').click(function () {
         const url = $(this).data('original-url');
@@ -84,7 +85,7 @@ $(document).ready(function() {
             type: 'POST',
             data: {
                 batch_number: $('#production-input').val(),
-                uri: "ws://" + window.location.host + "/ws/camera/",
+                uri: "ws://" + window.location.host + "/ws/plc_check/",
                 upload_url: $('#upload-url').data('url')
             },
             beforeSend: function (xhr) {
@@ -97,9 +98,8 @@ $(document).ready(function() {
     });
 
     $('#stop-camera-background').click(function () {
-        console.log("stop");
-        if (ws && ws.readyState === WebSocket.OPEN){
-            ws.send("stop");
+        if (ws_plc && ws_plc.readyState === WebSocket.OPEN){
+            ws_plc.send(JSON.stringify({"stop_signal": 1}));
         }
     });
 
