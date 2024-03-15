@@ -56,6 +56,7 @@ def start_camera_background(request):
         batch = create_new_productBatch_v2(batch_number, user_name)
 
     camera_num = batch.camera_num
+    camera_num = 9
 
     if trigger_process is None or not trigger_process.is_alive():
         camera_list = camera_manager.camera_sn_list
@@ -119,20 +120,21 @@ def productionImages(request):
 @api_view(['POST'])
 def latest_product(request):
     try:
-        batch = ProductBatchV2.objects.latest("production_date")
+        batch = ProductBatchV2.objects.last()
         camera_num = batch.camera_num
         photo_list = []
         for i in range(camera_num):
             gallery = Gallery.objects.get(title=f"{batch.batch_number}_{i}")
-            photo = gallery.photos.latest("date_added")
-            row, col = i % 3, i // 3
-            photo_list.append({"url": photo.image.url, "thumbnail": photo.get_display_url(),
-                               "title": photo.title, "img_id": f"r-{row}-c-{col}"})
+            photo = gallery.photos.last()
+            if photo is not None:
+                row, col = i % 3, i // 3
+                photo_list.append({"url": photo.image.url, "thumbnail": photo.get_display_url(),
+                                   "title": photo.title, "img_id": f"#r-{row}-c-{col}"})
 
         data = {'batch_number': batch.batch_number, 'urls': photo_list}
         return Response(data)
-    except:
-        return Response({'batch_number': "", "urls": []})
+    except Exception as e:
+        return Response({'batch_number': "", "urls": [], "message": str(e)})
 
 
 @login_required
@@ -148,26 +150,20 @@ def batchNumberSearch(request):
 
 
 class GalleryImageUploadAPIView(APIView):
-    parser_classes = (MultiPartParser,)
+    # parser_classes = (MultiPartParser,)
 
-    def post_old(self, request, *args, **kwargs):
-        batch_number = request.data.get('batch_number') 
-        serializer = PhotoUploadSerializer(data=request.data)
-        
-        if not batch_number:
-            return Response({"error": "Missing gallery_id"}, status=status.HTTP_400_BAD_REQUEST)
-
+    def get(self, request):
         try:
-            batch = ProductBatch.objects.get(batch_number=batch_number)
+            gallery_title = request.query_params.get("gallery_title")
+            gallery = Gallery.objects.get(title=gallery_title)
+            photo = gallery.photos.last()
+            if photo is not None:
+                return Response({"url": photo.image.url, "thumbnail": photo.get_display_url(),
+                                 "title": photo.title})
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        if serializer.is_valid():
-            photo = serializer.save()
-            batch.gallery.photos.add(photo)  # 将图片添加到指定的Gallery中
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
     def post(self, request, *args, **kwargs):
@@ -184,7 +180,7 @@ class GalleryImageUploadAPIView(APIView):
 
         if serializer.is_valid():
             photo = serializer.save()
-            batch.gallery.photos.add(photo)  # 将图片添加到指定的Gallery中
+            gallery.photos.add(photo)  # 将图片添加到指定的Gallery中
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

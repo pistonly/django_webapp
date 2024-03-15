@@ -203,16 +203,25 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
         self.camera_last_photo = []
         self.gallerys = []
         self.product_show_task = None
+        self.batch_number = None
 
     async def init_product_show(self, batch_number):
         self.product_show = True
         self.gallerys = []
-        productureBatch = ProductBatchV2.objects.get(batch_number=batch_number)
-        camera_num = productureBatch.camera_num
+        # productureBatch = ProductBatchV2.objects.get(batch_number=batch_number)
+        # camera_num = productureBatch.camera_num
+        camera_num = 18
         for i in range(camera_num):
             gallery = Gallery.objects.get(title=f"{batch_number}_{i}")
             self.gallerys.append(gallery)
             self.camera_last_photo.append(None)
+
+    async def stop_product_show(self):
+        self.product_show = False
+        if self.product_show_task is not None:
+            self.product_show_task.cancel()
+            await self.product_show_task
+            self.product_show_task = None
 
 
 
@@ -228,8 +237,11 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
             if batch_number is None:
                 print("batch_number can't be found")
                 return
+            if self.batch_number != batch_number:
+                await self.stop_product_show()
+                self.batch_number = batch_number
             await self.init_product_show(batch_number)
-            asyncio.create_task(self.product_feed())
+            self.product_show_task = asyncio.create_task(self.product_feed())
             return
 
         if camera_manager.current_camera.get('sn') is None:
@@ -294,13 +306,17 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
 
     async def product_feed(self):
         try:
+            print("0000000000000000000000")
             while self.product_show:
                 for i, gallery in enumerate(self.gallerys):
                     try:
                         photo = gallery.photos.latest("date_added")
                         if photo.title != self.camera_last_photo[i]:
                             row, col = i % 3, i // 3
-                            data = {"url": photo.image.url, "thumbnail": photo.get_display_url(), "title": photo.title, "img_id": f"r-{row}-c-{col}"}
+                            data = {"url": photo.image.url,
+                                    "thumbnail": photo.get_display_url(),
+                                    "title": photo.title,
+                                    "img_id": f"#r-{row}-c-{col}"}
                             self.camera_last_photo[i] = photo.title
                             await self.send(text_data=json.dumps(data))
                     except Exception as e:

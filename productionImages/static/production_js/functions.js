@@ -48,10 +48,12 @@
                 xhr.setRequestHeader("X-CSRFToken", csrftoken);
             },
             success: function(data) {
+                console.log("getlast product");
                 console.log(data);
                 $('#production-input').val(data.batch_number);
                 // addImagesToDiv(data.urls);
                 data.urls.forEach(function(photo) {
+                    console.log(photo);
                     $(photo.img_id).attr({
                         src: photo.thumbnail,
                         alt: photo.title,

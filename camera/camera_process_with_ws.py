@@ -1,7 +1,7 @@
 import asyncio
 import websockets
 import io
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 import uuid
 from datetime import datetime
 from .mindvision.camera_utils import get_devInfo_list, get_one_frame, image_to_numpy, initialize_cam, close_camera, set_camera_parameter, get_camera_parameters, save_image, softTrigger
@@ -28,13 +28,27 @@ def get_one_image(camera):
     frame.save(buffer, format='JPEG')
     return buffer
 
-def get_random_image():
-    frame = np.random.randint(0, 255, (640, 640), dtype=np.uint8)
+def get_random_image(text):
+    text = text[-5:]
+    height, width = 640, 640
+    frame = np.random.randint(0, 255, (height, width), dtype=np.uint8)
     frame = Image.fromarray(frame.astype(np.uint8))
+    # draw
+    draw = ImageDraw.Draw(frame)
+    font_size = int(height * 0.2)
+    try:
+        font = ImageFont.truetype("arial.ttf", font_size)
+    except IOError:
+        font = ImageFont.load_default()
+    
+    text_x, text_y, text_width, text_height = draw.textbbox((0,0), text, font=font)
+    text_x = (width - text_width) / 2
+    text_y = (height - text_height) / 2
+    draw.text((text_x, text_y), text, fill=(255, ), font=font)
+
     buffer = io.BytesIO()
     frame.save(buffer, format='JPEG')
     return buffer
-    
 
 
 def prepare_one_image(img_io, gallery_title, camera_info):
@@ -65,10 +79,11 @@ def prepare_one_image(img_io, gallery_title, camera_info):
 
 async def capture_and_upload(camera, gallery_title, url):
     if camera['handle'] is None:
-        img_io = get_random_image()
+        img_io = get_random_image(gallery_title)
     else:
         img_io = get_one_image(camera)
     _, data = prepare_one_image(img_io, gallery_title, camera['camera_info'])
+    print(f"{gallery_title}: get one immage")
     async with aiohttp.ClientSession() as session:
         form_data = aiohttp.FormData()
         for key, value in data.items():
@@ -79,6 +94,7 @@ async def capture_and_upload(camera, gallery_title, url):
             filename=data['title'],
             content_type='image/jpeg'
         )
+        url = "http://127.0.0.1:8000/api/gallery/upload/"
         async with session.post(url, data=form_data) as response:
             print(await response.text())
 
@@ -110,6 +126,9 @@ async def websocket_client(camera, gallery_title, uri, upload_url):
                 elif message == "trig":
                     print("Capturing and uploading image.")
                     await capture_and_upload(camera, gallery_title, upload_url)
+                    await websocket.send(json.dumps({"target": "web",
+                                                     "gallery_id": gallery_title,
+                                                     "updated": 1}));
     except ConnectionClosed:
         print("ws closed")
     except Exception as e:
@@ -127,33 +146,37 @@ def run_asyncio_camera_loop(camera_sn: str, batch_number:str, ws_uri:str, upload
         camera = {"handle": None, 'camera_info': {"roi0": [], "roi1": [], "roi0_disabled": True, "roi1_disabled": True}}
         gallery_title = batch_number
         asyncio.run(main(camera, gallery_title, ws_uri, upload_url))
+        print("============================process close ======================")
 
-    try:
-        camera_list = get_devInfo_list()
-        for camera_info in camera_list:
-            if camera_info.acSn.decode('utf8') == camera_sn:
-                camera_res = initialize_cam(camera_info)
-                camera = dict(zip(["handle", "cap", "mono", "bs", "pb"],
-                                  camera_res))
-                break
-        # load default configure
-        configure_file = configure_dir / camera_sn / "setted_configure.json"
-        if configure_file.is_file():
-            config_dict = json.load(open(str(configure_file), "r"))
-            set_camera_parameter(camera['handle'], **config_dict)
-        camera_info = get_camera_parameters(camera['handle'], camera['cap'])
-        camera.update({'camera_info': camera_info})
+    else:
 
-        camera_name = camera['name']
-        camera_ord = int(camera_name.split("_")[-1])
-        camera_ord = 0 if (camera_ord > 18 or camera_ord < 0) else camera_ord
-        gallery_title = f"{batch_number}_{camera_ord}"
+        try:
+            camera_list = get_devInfo_list()
+            for camera_info in camera_list:
+                if camera_info.acSn.decode('utf8') == camera_sn:
+                    camera_res = initialize_cam(camera_info)
+                    camera = dict(zip(["handle", "cap", "mono", "bs", "pb"],
+                                      camera_res))
+                    break
+            # load default configure
+            configure_file = configure_dir / camera_sn / "setted_configure.json"
+            if configure_file.is_file():
+                config_dict = json.load(open(str(configure_file), "r"))
+                set_camera_parameter(camera['handle'], **config_dict)
+            camera_info = get_camera_parameters(camera['handle'], camera['cap'])
+            camera.update({'camera_info': camera_info})
 
-        asyncio.run(main(camera, gallery_title, ws_uri, upload_url))
-    except Exception as e:
-        print(f"camera process error: {str(e)}")
+            camera_name = camera['name']
+            camera_ord = int(camera_name.split("_")[-1])
+            camera_ord = 0 if (camera_ord > 18 or camera_ord < 0) else camera_ord
+            gallery_title = f"{batch_number}_{camera_ord}"
 
-    finally:
-        if camera['handle'] is not None:
-            close_camera(camera['handle'], camera['pb'])
+            asyncio.run(main(camera, gallery_title, ws_uri, upload_url))
+        except Exception as e:
+            print(f"camera process error: {str(e)}")
+
+        finally:
+            print("==================process quit=====================")
+            if camera['handle'] is not None:
+                close_camera(camera['handle'], camera['pb'])
 

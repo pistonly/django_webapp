@@ -22,49 +22,51 @@ function searchProduct(){
     });
 }
 
-var ws;
 var ws_plc;
 
 function startWS() {
-    if (ws && ws.readyState === WebSocket.OPEN) {
-        console.log("WebSocket is already connected.");
-        return; // Exit the function to prevent a new connection
-    }
-
-    ws = new WebSocket("ws://" + window.location.host + "/ws/camera/");
-
-    ws.onopen = function (e) {
-        console.log("ws Connection established!");
-    };
-
-    ws.onmessage = function (e) {
-        var data = JSON.parse(e.data);
-        $(data.img_id).attr({src: data.thumbnail,
-                             alt: data.title,
-                             'data-original-url': data.url,
-                             'data-title': data.title});
-    };
-
-    ws.onerror = function (e) {
-        console.error("WebSocket error: ", e);
-    };
-
-    ws.onclose = function (e) {
-        console.log("WebSocket closed");
-    };
-
-    ws_plc = new WebSocket("ws://" +window.location.host + "/ws/plc_check/");
-    ws_plc.onopen = function() {
-        ws_plc.send(JSON.stringify({client_id: 'web'}));
+    ws_plc = new WebSocket("ws://" + window.location.host + "/ws/plc_check/");
+    ws_plc.onopen = function () {
+        ws_plc.send(JSON.stringify({ client_id: 'web' }));
         console.log("ws plc connection established");
     };
 
     ws_plc.onclose = function (e) {
-        console.log("WebSocket closed");
+        console.log("ws_plc WebSocket closed");
     };
 
+    ws_plc.onerror = function (e) {
+        console.error("ws_plc WebSocket error: ", e);
+    };
+    ws_plc.onmessage = function(e) {
+        console.log(e);
+        const data = JSON.parse(e.data);
+        if (data.img_id) {
+            update_thumbnail(data.img_id, data.gallery_id);
+        }
+    };
 }
 
+function update_thumbnail(img_id, gallery_id) {
+    console.log("update thumbnail");
+    $.ajax({
+        url: gallery_url,
+        type: "GET",
+        data: { "gallery_title": gallery_id },
+        success: function (data) {
+            if (data.thumbnail) {
+                $(img_id).attr({
+                    src: data.thumbnail,
+                    alt: data.title,
+                    'data-original-url': data.url,
+                    'data-title': data.title
+                });
+            } else {
+                console.log(data);
+            }
+        }
+    });
+}
 
 $(document).ready(function () {
     getLatestProduct();
@@ -80,11 +82,16 @@ $(document).ready(function () {
 
     $('#start-camera-background').click(function (){
         console.log("start");
+        const batch_number = $('#production-input').val();
+        if (batch_number.length == 0) {
+            alert("产品批号错误");
+            return;
+        }
         $.ajax({
             url: start_camera_url,
             type: 'POST',
             data: {
-                batch_number: $('#production-input').val(),
+                batch_number: batch_number,
                 uri: "ws://" + window.location.host + "/ws/plc_check/",
                 upload_url: $('#upload-url').data('url')
             },
@@ -92,6 +99,7 @@ $(document).ready(function () {
                 xhr.setRequestHeader("X-CSRFToken", csrftoken);
             },
             success: function(response) {
+                ws_plc.send(JSON.stringify({start: 1}));
                 console.log("start success");
             }
         });
