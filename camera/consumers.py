@@ -14,6 +14,8 @@ import time
 from pathlib import Path
 from productionImages.models import ProductBatchV2
 from photologue.models import Gallery
+from plc.plc_control import plcControl
+
 
 
 
@@ -204,6 +206,10 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
         self.gallerys = []
         self.product_show_task = None
         self.batch_number = None
+        self.plc_check_task = None
+        self.plc_checking = False
+        self.plc_reg_vals = {}
+        self.plc = plcControl()
 
     async def init_product_show(self, batch_number):
         self.product_show = True
@@ -215,6 +221,17 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
             gallery = Gallery.objects.get(title=f"{batch_number}_{i}")
             self.gallerys.append(gallery)
             self.camera_last_photo.append(None)
+
+    async def init_plc_check(self):
+        self.plc.connect()
+        self.plc_checking = True
+        self.plc_reg_vals.update({"m": {}, "d": {}})
+        for m in ['M202', 'M1', 'M11', 'M212', 'M4', 'M14']:
+            self.plc_reg_vals['m'][m] = None
+
+        for d in ['D850', 'D864', 'D856', 'D870', 'D814', 'D812']:
+            self.plc_reg_vals['d'][d] = None
+
 
     async def stop_product_show(self):
         self.product_show = False
@@ -231,6 +248,20 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
         text_data_json = json.loads(text_data)
         self.trigger_mode = text_data_json.get('trigger_mode')
 
+        plc_arb_w = text_data_json.get("plc-arb-w")
+        if plc_arb_w and self.plc.client.connected:
+            plc_arb_reg = text_data_json.get("plc-arb-reg")
+            plc_arb_val = text_data_json.get("plc-arb-val")
+            self.plc.set_reg(plc_arb_reg, plc_arb_val)
+            return
+
+        plc_arb_r = text_data_json.get("plc-arb-r")
+        if plc_arb_r and self.plc.client.connected:
+            plc_arb_reg = text_data_json.get("plc-arb-reg")
+            success, val = self.plc.get_reg(plc_arb_reg)
+            await self.send(json.dumps({"arb_success": success, "arb_val": val}))
+            return
+
         product_show = text_data_json.get("product_show")
         if product_show is not None:
             batch_number = text_data_json.get("batch_number")
@@ -243,6 +274,27 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
             await self.init_product_show(batch_number)
             self.product_show_task = asyncio.create_task(self.product_feed())
             return
+
+        check_plc = text_data_json.get("check_plc")
+        if check_plc and not self.plc_checking:
+            plc_reg = text_data_json.get("plc_reg")
+            val = text_data_json.get("val")
+            if plc_reg and self.plc.client.connected:
+                self.plc.set_reg(plc_reg, val)
+            self.plc_check_task = asyncio.create_task(self.check_plc_background())
+            return
+
+        plc_stop_check = text_data_json.get("plc_stop_check")
+        if plc_stop_check:
+            self.plc_checking = False
+            if self.plc_check_task:
+                self.plc_check_task.cancel()
+                try:
+                    await self.plc_check_task
+                except asyncio.CancelledError:
+                    print("plc cancelled")
+            return 
+        
 
         if camera_manager.current_camera.get('sn') is None:
             print(f"current camera is None")
@@ -304,6 +356,41 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
             print("camera feed cancelled")
             pass
 
+    async def check_plc_background(self):
+        await self.init_plc_check()
+        while self.plc_checking:
+            m_updated, d_updated = [], []
+            plc_online = True
+            for m in ['M202', 'M1', 'M11', 'M212', 'M4', 'M14']:
+                old = self.plc_reg_vals['m'][m]
+                success, v = self.plc.get_M(m)
+                if success:
+                    if old != v:
+                        m_updated.append({"id": f"#{m}", "val": v})
+                        self.plc_reg_vals['m'][m] = v
+                else:
+                    plc_online = False
+                    break
+
+            for d in ['D850', 'D864', 'D856', 'D870', 'D814', 'D812']:
+                old = self.plc_reg_vals['d'][d]
+                success, v = self.plc.read_D(d)
+                if success:
+                    if old != v:
+                        d_updated.append({"id": f"#{d}", "val": v})
+                        self.plc_reg_vals['d'][d] = v
+                else:
+                    plc_online = False
+                    break
+            if not plc_online or len(m_updated) or len(d_updated):
+                await self.send(json.dumps({"plc_online": plc_online,
+                                            "M_data": m_updated,
+                                            "D_data": d_updated}))
+            if not plc_online:
+                print("stopping plc checking")
+                self.plc_checking = False
+            await asyncio.sleep(1.5)
+
     async def product_feed(self):
         try:
             print("0000000000000000000000")
@@ -340,6 +427,15 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
 
         # close camera
         camera_manager.close_camera()
+
+        # plc
+        self.plc_checking = False
+        if self.plc_check_task:
+            self.plc_check_task.cancel()
+            try:
+                await self.plc_check_task
+            except asyncio.CancelledError:
+                print("plc cancelled")
 
     async def get_camera_frame(self):
         success, buffer = camera_manager.get_one_frame()

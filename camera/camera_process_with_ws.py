@@ -10,6 +10,9 @@ import numpy as np
 import aiohttp
 import json
 from pathlib import Path
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 
@@ -83,7 +86,7 @@ async def capture_and_upload(camera, gallery_title, url):
     else:
         img_io = get_one_image(camera)
     _, data = prepare_one_image(img_io, gallery_title, camera['camera_info'])
-    print(f"{gallery_title}: get one immage")
+    logging.info(f"{gallery_title}: get one immage")
     async with aiohttp.ClientSession() as session:
         form_data = aiohttp.FormData()
         for key, value in data.items():
@@ -96,7 +99,7 @@ async def capture_and_upload(camera, gallery_title, url):
         )
         url = "http://127.0.0.1:8000/api/gallery/upload/"
         async with session.post(url, data=form_data) as response:
-            print(await response.text())
+            logging.info(await response.text())
 
 async def websocket_client(camera, gallery_title, uri, upload_url):
     try:
@@ -118,21 +121,21 @@ async def websocket_client(camera, gallery_title, uri, upload_url):
 
             while True:
                 message = await websocket.recv()
-                print(f"< {message}")
+                logging.info(f"< {message}")
 
                 if message == "stop":
-                    print("Stopping as per 'stop' signal.")
+                    logging.info("Stopping as per 'stop' signal.")
                     break
                 elif message == "trig":
-                    print("Capturing and uploading image.")
+                    logging.info("Capturing and uploading image.")
                     await capture_and_upload(camera, gallery_title, upload_url)
                     await websocket.send(json.dumps({"target": "web",
                                                      "gallery_id": gallery_title,
                                                      "updated": 1}));
     except ConnectionClosed:
-        print("ws closed")
+        logging.info("ws closed")
     except Exception as e:
-        print(f"An unexpected error: {e}")
+        logging.info(f"An unexpected error: {e}")
 
 
 async def main(camera:dict, gallery_title:str, ws_uri: str, upload_url: str):
@@ -146,7 +149,7 @@ def run_asyncio_camera_loop(camera_sn: str, batch_number:str, ws_uri:str, upload
         camera = {"handle": None, 'camera_info': {"roi0": [], "roi1": [], "roi0_disabled": True, "roi1_disabled": True}}
         gallery_title = batch_number
         asyncio.run(main(camera, gallery_title, ws_uri, upload_url))
-        print("============================process close ======================")
+        logging.info("============================process close ======================")
 
     else:
 
@@ -173,10 +176,10 @@ def run_asyncio_camera_loop(camera_sn: str, batch_number:str, ws_uri:str, upload
 
             asyncio.run(main(camera, gallery_title, ws_uri, upload_url))
         except Exception as e:
-            print(f"camera process error: {str(e)}")
+            logging.info(f"camera process error: {str(e)}")
 
         finally:
-            print("==================process quit=====================")
+            logging.info("==================process quit=====================")
             if camera['handle'] is not None:
                 close_camera(camera['handle'], camera['pb'])
 

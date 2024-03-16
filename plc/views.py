@@ -14,7 +14,7 @@ def is_admin(user):
 plc = plcControl()
 
 @login_required
-@api_view(['POST'])
+@api_view(['get'])
 def plc_connected(request):
     return Response({"connected": plc.connected()})
 
@@ -33,7 +33,6 @@ def get_selected_registers(request):
         if success:
             reg_values.update({d: v})
     return Response({'reg_values': reg_values})
-    
 
 
 @login_required

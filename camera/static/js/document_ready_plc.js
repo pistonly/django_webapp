@@ -3,6 +3,7 @@ var plc_setM_url = $('#plc-setM-url').data('url');
 var plc_getM_url = $('#plc-getM-url').data('url');
 var plc_writeD_url = $('#plc-writeD-url').data('url');
 var plc_readD_url = $('#plc-readD-url').data('url');
+var plc_connected_url = $('#plc-connected-url').data('url');
 const M202 = $('input[name="M202"]');
 const M1 = $('input[name="M1"]');
 const M11 = $('input[name="M11"]');
@@ -146,10 +147,48 @@ $(document).ready(function () {
     $('.reg-btn').on('click', function () {
         // 获取点击按钮的数据属性
         const buttonId = $(this).attr('id');
+        const reg_id = buttonId.split("-")[0];
+        if ($(this).text() == "修改") {
+            $(this).text("确定");
+            ws.send(JSON.stringify({ "plc_stop_check": 1 }));
+            $("#" + reg_id).prop("disabled", false);
+        } else {
+            $(this).text("修改");
+            ws.send(JSON.stringify({ "plc_reg": reg_id, "val": $("#" + reg_id).val(), "check_plc": 1 }));
+            $("#" + reg_id).prop("disabled", true);
+        }
 
-        // 根据获取的属性执行相应的操作
-        performRegAction(buttonId);
     });
 
+    $('#plc-status-on').on('click', function(){
+        console.log("plc-status clicked");
+    });
+
+    $('#plc-status-off').on('click', function () {
+        console.log("plc-status-off clicked");
+        $('#offline-txt').text("连接中....");
+        ws.send(JSON.stringify({
+            "check_plc": 1
+        }));
+
+    });
+
+    $('#arb-w').on('click', function() {
+        const reg = $('#arb-reg').val();
+        const val = $('#arb-val').val();
+        ws.send(JSON.stringify({
+            "plc-arb-w": 1,
+            "plc-arb-reg": reg,
+            "plc-arb-val": val
+        }));
+    });
+
+    $('#arb-r').on('click', function() {
+        const reg = $('#arb-reg').val();
+        ws.send(JSON.stringify({
+            "plc-arb-r": 1,
+            "plc-arb-reg": reg,
+        }));
+    });
 });
 

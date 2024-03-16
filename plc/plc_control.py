@@ -67,10 +67,27 @@ class plcControl(object):
         if self.client is not None:
             self.client.close()
 
+    def set_reg(self, address="m201", value=1):
+        address = address.lower()
+        if address.startswith("m"):
+            return self.set_M(address, value)
+        else:
+            return self.write_D(address, value)
+
+    def get_reg(self, address="m201"):
+        address = address.lower()
+        if address.startswith("m"):
+            return self.get_M(address)
+        else:
+            return self.read_D(address)
+
+
     def set_M(self, address="m201", value=1):
+        if not self.client.connected:
+            return False, "client is not connected"
         try:
             assert address.lower().startswith("m"), "address should start with 'm'"
-            self.client.write_coil(get_register(address), value)
+            self.client.write_coil(get_register(address), int(value))
             return True, None
         except Exception as e:
             print("set_M failed", str(e))
@@ -78,6 +95,8 @@ class plcControl(object):
 
 
     def get_M(self, address="m201", value=1):
+        if not self.client.connected:
+            return False, "client is not connected"
         try:
             assert address.lower().startswith("m"), "address should start with 'm'"
             res = self.client.read_coils(get_register(address))
@@ -87,15 +106,19 @@ class plcControl(object):
             return False, str(e)
 
     def write_D(self, address="d812", value=100):
+        if not self.client.connected:
+            return False, "client is not connected"
         try:
             assert address.lower().startswith("d"), "address should start with 'd'"
-            self.client.write_registers(get_register(address), values=value)
+            self.client.write_registers(get_register(address), values=int(value))
             return True, None
         except Exception as e:
             print("write D failed: ", str(e))
             return False, str(e)
 
     def read_D(self, address="d812"):
+        if not self.client.connected:
+            return False, "client is not connected"
         try:
             assert address.lower().startswith("d"), "address should start with 'd'"
             res = self.client.read_holding_registers(get_register(address))

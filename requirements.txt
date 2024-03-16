@@ -6,3 +6,5 @@ djangorestframework
 django-photologue
 pytz
 pymodbus
+websockets
+aiohttp

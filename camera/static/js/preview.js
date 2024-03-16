@@ -1,19 +1,53 @@
-    function startWS() {
-        if (ws && ws.readyState === WebSocket.OPEN) {
-            console.log("WebSocket is already connected.");
-            return; // Exit the function to prevent a new connection
+function startWS() {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        console.log("WebSocket is already connected.");
+        return; // Exit the function to prevent a new connection
+    }
+
+    var cameraId = $("#select_camera").val();
+    ws = new WebSocket("ws://" + window.location.host + "/ws/camera/");
+
+    ws.onopen = function (e) {
+        console.log("Connection established!");
+    };
+
+    ws.onmessage = function (e) {
+        var data = JSON.parse(e.data);
+        console.log(data);
+        // arb-reg-r
+        if (data.hasOwnProperty("arb_val")) {
+            if (!data.arb_success) {
+                alert(data.arb_val);
+            } else {
+                $('#arb-val').val(data.arb_val);
+            }
+            return;
         }
 
-        var cameraId = $("#select_camera").val();
-        ws = new WebSocket("ws://" + window.location.host + "/ws/camera/");
-
-        ws.onopen = function(e) {
-            console.log("Connection established!");
-        };
-
-        ws.onmessage = function(e) {
-            var data = JSON.parse(e.data);
+        // preview
+        if (data.frame) {
             $("#camera-image").attr("src", "data:image/jpeg;base64," + data.frame);
+        } else {
+            // plc
+            if (data.plc_online) {
+                $('#plc-status-on').css('display', 'block');
+                $('#plc-status-off').css('display', 'none');
+
+                data.M_data.forEach(function (m) {
+                    console.log(m);
+                    $(m.id).val(m.val);
+                    });
+                    data.D_data.forEach(function (d) {
+                        console.log(d);
+                        $(d.id).val(d.val);
+                    });
+                } else {
+                    // off-line
+                    $('#plc-status-on').css('display', 'none');
+                    $('#plc-status-off').css('display', 'block');
+                    $('#offline-txt').text("离线，请点击连接");
+                }
+            }
         };
 
         ws.onerror = function(e) {
