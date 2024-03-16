@@ -18,7 +18,7 @@ def is_admin(user):
 @user_passes_test(is_admin)
 def camera_view(request):
     print("camera view")
-    return render(request, "camera/camera.html")
+    return render(request, "camera/camera.html", {"camera_names": [f"camera_{i:02d}" for i in range(18)]})
 
 
 @login_required

@@ -8,7 +8,7 @@ roi0 = [0, 0, 1280, 720]
 roi1 = [0, 0, 1920, 1080]
 roi0_disabled = 1
 roi1_disabled = 1
-name = 'camera_0'
+name = 'camera_00'
 
 def get_devInfo_list()-> list:
     return mvsdk.CameraEnumerateDevice()

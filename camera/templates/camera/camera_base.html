@@ -229,8 +229,8 @@
             success: function(data) {
                 // 处理数据...
                 console.log(data);
-                // Update resolution input
-                $('#resolution-input').val(data.resolution.w + 'x' + data.resolution.h);
+                // Update camera-name
+                $('#camera-name-sel').val(data.name);
 
                 // Update trigger mode radios
                 $('input[name="trigger"][value="' + data.triggerMode + '"]').prop('checked', true);
@@ -276,7 +276,7 @@
                     $('#check-roi-1').prop('disabled', true);
                 } else {
                     $('#check-roi-1').prop('disabled', false);
-                }
+            }
             }
         });
     }

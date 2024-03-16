@@ -5,17 +5,16 @@
 <h3 data-target="#camera-setting" data-toggle="collapse" style="cursor: pointer;">相机设置</h3>
 <div id="camera-setting" class="collapse show">
     <div class="mb-3">
-        <h5 data-target="#resolution-settings" data-toggle="collapse" style="cursor: pointer;">分辨率</h5>
-        <div id="resolution-settings" class="collapse show">
+        <h5 data-target="#camera-name" data-toggle="collapse" style="cursor: pointer;">相机名</h5>
+        <div id="camera-name" class="collapse show">
             <div class="input-group mb-3">
-                <input type="text" class="form-control" placeholder="输入或选择分辨率" id="resolution-input" aria-label="Resolution">
+                <select id="camera-name-sel" class="form-control" >
+                    {% for camera_i in camera_names %}
+                    <option value="{{ camera_i }}">{{ camera_i }}</option>
+                    {% endfor %}
+                </select>
                 <div class="input-group-append">
-                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">选择</button>
-                    <div class="dropdown-menu">
-                        <a class="dropdown-item resolution-option" href="#">1920x1080</a>
-                        <a class="dropdown-item resolution-option" href="#">1280x720</a>
-                        <a class="dropdown-item resolution-option" href="#">640x480</a>
-                    </div>
+                    <button class="btn btn-outline-secondary" type="button" >确定</button>
                 </div>
             </div>
         </div>
@@ -63,7 +62,7 @@
                 </div>
                 <div class="col-auto form-check">
                     <input type="radio" name="trigger" value="2" id="hard-mode" class="form-check-input">
-                    <label class="form-check-label" for="hard-mode">硬件触发</label>
+                    <label class="form-check-label" for="hard-mode">PLC触发</label>
                 </div>
             </div>
 
