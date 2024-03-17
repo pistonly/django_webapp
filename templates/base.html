@@ -68,10 +68,11 @@
             <!-- 登录状态 -->
             {% if user.is_authenticated %}
             <span class="navbar-text mr-2">你好, {{ user.username }} </span>
-            <a href="{% url 'logout' %}" class="btn btn-outline-success">退出</a>
+            <a href="{% url 'logout' %}" class="btn btn-outline-success mr-2">退出</a>
             {% else %}
             <a href="{% url 'login' %}" class="btn btn-outline-success">登录</a>
             {% endif %}
+            <a href="/admin/" class="btn btn-outline-info mr-2" >管理</a>
         </div>
     </nav>
 

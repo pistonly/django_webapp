@@ -62,9 +62,8 @@ def change_camera(request):
 @login_required
 @api_view(['POST'])
 def save_configure(request):
-    camera_id = request.data.get("camera_id")
     config_f = request.data.get("config_f")
-    success, message = camera_manager.save_configure(camera_id, config_f)
+    success, message = camera_manager.save_configure(config_f)
     if success:
         _status = status.HTTP_200_OK
     else:
@@ -74,9 +73,8 @@ def save_configure(request):
 @login_required
 @api_view(['POST'])
 def load_configure(request):
-    camera_id = request.data.get("camera_id")
     config_f = request.data.get("config_f")
-    success, message = camera_manager.load_configure(camera_id, config_f)
+    success, message = camera_manager.load_configure(config_f)
     if success:
         _status = status.HTTP_200_OK
     else:
@@ -87,9 +85,8 @@ def load_configure(request):
 @login_required
 @api_view(['POST'])
 def reset_configure(request):
-    camera_id = request.data.get("camera_id")
     config_f = request.data.get("config_f")
-    success, message = camera_manager.reset_configure(camera_id, config_f)
+    success, message = camera_manager.reset_configure(config_f)
     if success:
         _status = status.HTTP_200_OK
     else:

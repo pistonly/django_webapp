@@ -105,14 +105,11 @@ $(document).ready(function() {
     });
 
     // config 
-    $('.config-option').click(function(e) {
-        // 阻止<a>标签的默认行为
-        e.preventDefault();
-        // 获取点击的分辨率选项的文本，并设置到输入框中
-        var configure_file = $(this).text();
-        $('#configure-file').val(configure_file);
-        // setting 
+    $('#configure-files').on('click', '.config-option', function () {
+        var text = $(this).text(); // 获取点击项的文本
+        $('#configure-file').val(text); // 将文本设置为input的值
     });
+
     // trigger mode
     // Listen for changes on the trigger mode radio buttons
     $('input[name="trigger"]').change(function() {
@@ -229,6 +226,29 @@ $(document).ready(function() {
             success: function(data) {
                 console.log("contrast setting success");
             }
+        });
+    });
+
+    $('#name-btn').click(function(e){
+        $.ajax({
+            url: '/api/camera/parameters/',
+            type: 'POST',
+            data: {
+                name: $('#camera-name-sel').val(),
+            },
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            },
+            success: function (response) {
+                console.log("name-changed");
+                $('#status').text('name changed');
+            },
+            error: function (xhr, status, error) {
+                // 错误处理
+                console.error('An error occurred: ' + error);
+                $('#status').text('Error changing name.');
+            }
+
         });
     });
 

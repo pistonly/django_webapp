@@ -167,7 +167,7 @@ def get_camera_parameters(hCamera, cap):
 
 
 def set_camera_parameter(hCamera, **kwargs):
-    print(kwargs)
+    # print(kwargs)
     if "name" in kwargs:
         global name
         name = kwargs['name']
@@ -246,8 +246,8 @@ def set_camera_parameter(hCamera, **kwargs):
         mvsdk.CameraSetContrast(hCamera, int(float(kwargs['lut_contrast'])))
 
     # -------------------- snap --------------------
-    if 'snap_resolution' in kwargs:
-        mvsdk.CameraSetResolutionForSnap(hCamera, kwargs['snap_resolution'])
+    # if 'snap_resolution' in kwargs:
+    #     mvsdk.CameraSetResolutionForSnap(hCamera, kwargs['snap_resolution'])
 
     # -------------------- speed --------------------
     if 'frame_speed' in kwargs:

@@ -57,7 +57,7 @@ function getCameraParameters() {
             $('#manualExposureTime').val(data.expose_time);
             $('#ae_target').attr('min', data.ae_target_range[0])
                 .attr('max', data.ae_target_range[1])
-                .val(data.ae_target)
+                .val(data.ae_target);
             $('input[name="ae_state"][value="' + data.ae_state + '"]').trigger('change');
 
             // Update gamma and contrast values and ranges
@@ -90,6 +90,17 @@ function getCameraParameters() {
             } else {
                 $('#check-roi-1').prop('disabled', false);
             }
+
+            // configure
+            $('#configure-file').val(data.configure_name_alias);
+            // update configure files
+            $('#configure-files').empty();
+            data.configure_f.forEach(function(conf){
+                $('#configure-files').append(
+                    $('<a class="dropdown-item config-option" ></a>').val(conf).text(conf));
+            });
+
+
         }
     });
 }

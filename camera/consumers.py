@@ -18,7 +18,6 @@ from plc.plc_control import plcControl
 
 
 
-
 current_dir = Path(__file__).resolve().parent
 configure_dir = current_dir / 'configure'
 class cameraManager:
@@ -33,22 +32,28 @@ class cameraManager:
         camera_config_dir.mkdir(parents=True, exist_ok=True)
         # 4 configures
         for i in range(4):
-            config_f = camera_config_dir / f"configure_{i:03d}.json"
+            config_f = camera_config_dir / f"configure_配置{i}.json"
             if not config_f.is_file():
-                json.dump({}, open(str(config_f), "w"))
+                json.dump({"configure_name": config_f.stem}, open(str(config_f), "w"))
 
-        configures = [str(f) for f in camera_config_dir.iterdir() if f.with_suffix(".json")]
+        configures = [self.configure_name_to_show(f.stem) for f in camera_config_dir.iterdir() if f.with_suffix(".json") and f.stem.startswith("configure_")]
         configures.sort()
         # default config
         success, default_configure = self.get_camera_info()
 
         # load setted_configure
         setted_config_f = camera_config_dir / f"setted_configure.json"
+        configure_name = None
         if setted_config_f.is_file():
             setted_config = json.load(open(str(setted_config_f), 'r'))
             self.set_camera(setted_config)
+            configure_name = setted_config['configure_name']
+        else:
+            # default is configure_000
+            configure_name = "configure_配置0"
 
-        self.current_camera.update({"configure_f": configures, 'default_config': default_configure})
+        self.current_camera.update({"configure_f": configures, 'default_config': default_configure,
+                                    "configure_name": configure_name})
 
     def reset_configure(self, config_f):
         sn = self.current_camera.get('sn')
@@ -101,14 +106,20 @@ class cameraManager:
 
         if not config_f.startswith("configure_"):
             config_f = f"configure_{config_f}"
+        if not config_f.endswith(".json"):
+            config_f = f"{config_f}.json"
+
         config_f_path = configure_dir / sn / config_f
         if config_dict is None:
             success, config_dict = self.get_camera_info()
+            config_dict.update({'configure_name': config_f_path.stem})
         else:
             success = True
 
         if success:
+            setted_config_f = config_f_path.parent / "setted_configure.json"
             json.dump(config_dict, open(str(config_f_path), "w"))
+            json.dump(config_dict, open(str(setted_config_f), "w"))
             return True, "saved success"
         else:
             return success, "save configure failed"
@@ -120,10 +131,17 @@ class cameraManager:
 
         if not config_f.startswith("configure_"):
             config_f = f"configure_{config_f}"
+        if not config_f.endswith(".json"):
+            config_f = f"{config_f}.json"
+
         config_f_path = configure_dir / sn / config_f
         if config_f_path.is_file():
             config_dict = json.load(open(str(config_f_path), "r"))
             success, message = self.set_camera(config_dict)
+            if success:
+                setted_config_f = config_f_path.parent / "setted_configure.json"
+                json.dump(config_dict, open(str(setted_config_f), "w"))
+
             return success, message
         else:
             return False, f"{str(config_f_path)} is not file"
@@ -174,10 +192,23 @@ class cameraManager:
         frame.save(buffer, format='JPEG')
         return True, buffer
 
+    def configure_name_to_show(self, configure_name: str):
+        if configure_name.startswith("configure_"):
+            _from = len("configure_")
+            configure_name = configure_name[_from:]
+        if configure_name.endswith(".json"):
+            _end = len(configure_name) - len(".json")
+            configure_name = configure_name[:_end]
+        return configure_name
+
     def get_camera_info(self):
         camera = self.current_camera
         try:
             camera_info = get_camera_parameters(camera['handle'], camera['cap'])
+            camera_info.update({"configure_f": camera.get("configure_f"),
+                                "configure_name": camera.get("configure_name")})
+            if camera.get("configure_name"):
+                camera_info.update({"configure_name_alias": self.configure_name_to_show(camera.get("configure_name"))})
             return True, camera_info
         except Exception as e:
             return False, str(e)
@@ -186,6 +217,7 @@ class cameraManager:
         camera = self.current_camera
         if camera.get("sn") is None:
             return False, "please update camera list"
+        print(parameters)
         set_camera_parameter(camera['handle'], **parameters)
         camera_info = self.get_camera_info()
         return True, camera_info

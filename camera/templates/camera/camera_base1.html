@@ -16,7 +16,7 @@
                     {% endfor %}
                 </select>
                 <div class="input-group-append">
-                    <button class="btn btn-outline-secondary" type="button" >确定</button>
+                    <button class="btn btn-outline-secondary" type="button" id="name-btn">确定</button>
                 </div>
             </div>
         </div>
@@ -153,11 +153,11 @@
                 <input type="text" class="form-control" placeholder="输入或选择配置文件" id="configure-file" aria-label="configure">
                 <div class="input-group-append">
                     <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">选择</button>
-                    <div class="dropdown-menu">
-                        <a class="dropdown-item config-option" href="#">配置1</a>
-                        <a class="dropdown-item config-option" href="#">配置2</a>
-                        <a class="dropdown-item config-option" href="#">配置3</a>
-                        <a class="dropdown-item config-option" href="#">配置4</a>
+                    <div class="dropdown-menu" id="configure-files">
+                        <a class="dropdown-item config-option" value="configure_000">配置1</a>
+                        <a class="dropdown-item config-option" value="configure_001">配置2</a>
+                        <a class="dropdown-item config-option" value="configure_002">配置3</a>
+                        <a class="dropdown-item config-option" value="configure_003">配置4</a>
                     </div>
                 </div>
                 <div class="input-group-append">
