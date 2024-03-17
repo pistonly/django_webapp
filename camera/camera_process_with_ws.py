@@ -169,7 +169,7 @@ def run_asyncio_camera_loop(camera_sn: str, batch_number:str, ws_uri:str, upload
             camera_info = get_camera_parameters(camera['handle'], camera['cap'])
             camera.update({'camera_info': camera_info})
 
-            camera_name = camera['name']
+            camera_name = camera['camera_info']['name']
             camera_ord = int(camera_name.split("_")[-1])
             camera_ord = 0 if (camera_ord > 18 or camera_ord < 0) else camera_ord
             gallery_title = f"{batch_number}_{camera_ord}"

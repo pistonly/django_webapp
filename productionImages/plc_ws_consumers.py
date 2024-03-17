@@ -19,7 +19,7 @@ def get_client_id(data:dict, connected_clients:dict):
                 if client_id not in connected_clients:
                     return client_id, i
         else:
-            gallery_id = int(data['client_id'].split("_"))
+            gallery_id = int(data['client_id'].split("_")[-1])
             return data['client_id'], gallery_id
 
 
@@ -102,6 +102,17 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                 if client_id == self.client_id:
                     continue
                 await client.send(text_data="stop")
+            try:
+                if self.plc_check_task is not None:
+                    self.plc_check_task.cancel()
+                    await self.plc_check_task
+                    self.plc_check_task = None
+            except:
+                print("plc check cancel error")
+            finally:
+                self.plc_check_task = None
+                print("plc check cancelled++++++++++++++++++++++++++++++++++++++++")
+
 
         if "target" in data:
             target = data['target']
@@ -124,6 +135,7 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
         #     print("plc is offline")
         #     return
 
+        print("~~~~~~~~~~~~~~~~~~~~ check ~~~~~~~~~~~~~~~~~~~~")
         while self.plc_checking:
             # M1_val = plc.get_M("M1")
             M1_val = 1
@@ -134,7 +146,11 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                 for _id, client in self.connected_clients.items():
                     if _id == "web":
                         continue
-                    await client.send("trig")
+                    try:
+                        if int(_id.split("_")[-1]) < 9:
+                            await client.send("trig")
+                    except:
+                        pass
                 # await self.channel_layer.group_send(
                 #     "front",
                 #     {
@@ -142,6 +158,18 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                 #         "message": "trig"
                 #     }
                 # )
+            await asyncio.sleep(3)
+            M4_val = 1
+            if M4_val:
+                print("m4")
+                for _id, client in self.connected_clients.items():
+                    if _id == "web":
+                        continue
+                    try:
+                        if int(_id.split("_")[-1]) >= 9:
+                            await client.send("trig")
+                    except:
+                        pass
             # M4_val = plc.get_M("M4")
             # if M4_val:
             #     plc.set_M("M4", 0)

@@ -56,7 +56,6 @@ def start_camera_background(request):
         batch = create_new_productBatch_v2(batch_number, user_name)
 
     camera_num = batch.camera_num
-    camera_num = 9
 
     if trigger_process is None or not trigger_process.is_alive():
         camera_list = camera_manager.camera_sn_list
@@ -67,6 +66,7 @@ def start_camera_background(request):
                 ws_uri,
                 upload_url))
             trigger_process.start()
+        time.sleep(3)
         # start random camera 
         if len(camera_list) < camera_num:
             for _ in range(camera_num - len(camera_list)):
