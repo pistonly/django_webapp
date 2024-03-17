@@ -17,72 +17,85 @@
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
 <style>
-    /* Custom styles to better match the screenshot */
-    .sidebar {
-        background-color: #FF4500;
-        color: white;
-    }
+ /* Custom styles to better match the screenshot */
+ .sidebar {
+     background-color: #FF4500;
+     color: white;
+ }
 
-    .sidebar .nav-item:hover {
-        background-color: #FF5733;
-    }
+ .sidebar .nav-item:hover {
+     background-color: #FF5733;
+ }
 
-    .nav-link {
-        color: white;
-    }
+ .nav-link {
+     color: white;
+ }
 
-    .nav-link.active {
-        background-color: #FF5733;
-    }
+ .nav-link.active {
+     background-color: #FF5733;
+ }
 
-    .control-label {
-        margin-right: 10px;
-    }
+ .control-label {
+     margin-right: 10px;
+ }
 
-    .slider {
-        width: auto;
-    }
+ .slider {
+     width: auto;
+ }
 
-    .image-region {
-        height: 100%;
-        margin: 0;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-    }
+ .image-region {
+     height: 100%;
+     margin: 0;
+     display: flex;
+     flex-direction: column;
+     align-items: center;
+     justify-content: center;
+ }
 
-    .image-container {
-        position: relative;
-        display: inline-block;
-    }
+ .image-container {
+     position: relative;
+     display: inline-block;
+ }
 
-    .drag-handle {
-        position: absolute;
-        bottom: 0;
-        right: 0;
-        width: 20px;
-        height: 20px;
-        background-color: #000;
-        cursor: nwse-resize;
-    }
+ .drag-handle {
+     position: absolute;
+     bottom: 0;
+     right: 0;
+     width: 20px;
+     height: 20px;
+     background-color: #000;
+     cursor: nwse-resize;
+ }
 
-    .info-panel {
-        margin-top: 20px;
-    }
+ .info-panel {
+     margin-top: 20px;
+ }
 
-    .roi-canvas {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-    }
+ .roi-canvas {
+     position: absolute;
+     top: 0;
+     left: 0;
+     width: 100%;
+     height: 100%;
+ }
 
-    /* 调整radio标签的外边距，让布局更紧凑 */
-    .form-check {
-        margin-bottom: 0;
-    }
+ /* 调整radio标签的外边距，让布局更紧凑 */
+ .form-check {
+     margin-bottom: 0;
+ }
+
+ .collapse-indicator::after {
+     content: '↓';
+     /* 默认是向下箭头，表示可展开 */
+     padding-left: 5px;
+ }
+
+ .collapsed .collapse-indicator::after {
+     content: '→';
+     /* 当折叠起来时变为向右箭头，表示可点击展开 */
+ }
+
+
 </style>
 {% endblock %}
 

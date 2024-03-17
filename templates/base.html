@@ -10,6 +10,7 @@
     <title>AI检测系统</title>
     {% endblock %}
 
+
     {% block head_style %}
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 
@@ -21,11 +22,11 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
     <style>
-     .image-preview img {
-         height: auto;
-         max-width: 100%;
-         margin-bottom: 15px;
-     }
+        .image-preview img {
+            height: auto;
+            max-width: 100%;
+            margin-bottom: 15px;
+        }
     </style>
 
     {% endblock %}
@@ -48,7 +49,7 @@
 
                 {% url 'gallery' as gallery_url %}
                 <li class="nav-item {% if request.path == gallery_url %}active{% endif %}">
-                    <a class="nav-link" href="{{ gallery_url }}">Home</a>
+                    <a class="nav-link" href="{{ gallery_url }}">流水线检测</a>
                 </li>
 
 
@@ -56,7 +57,7 @@
                 {% if request.user.is_superuser or request.user.is_staff %}
                 {% url 'camera' as camera_url %}
                 <li class="nav-item {% if request.path == camera_url %}active{% endif %}">
-                    <a class="nav-link" href="{{ camera_url }}">Camera Settings</a>
+                    <a class="nav-link" href="{{ camera_url }}">相机设置</a>
                 </li>
                 {% endif %}
             </ul>
@@ -66,10 +67,10 @@
         <div class="d-flex">
             <!-- 登录状态 -->
             {% if user.is_authenticated %}
-            <span class="navbar-text me-2">Hello, {{ user.username }}</span>
-            <a href="{% url 'logout' %}" class="btn btn-outline-success">Logout</a>
+            <span class="navbar-text mr-2">你好, {{ user.username }} </span>
+            <a href="{% url 'logout' %}" class="btn btn-outline-success">退出</a>
             {% else %}
-            <a href="{% url 'login' %}" class="btn btn-outline-success">Login</a>
+            <a href="{% url 'login' %}" class="btn btn-outline-success">登录</a>
             {% endif %}
         </div>
     </nav>

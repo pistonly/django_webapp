@@ -294,7 +294,6 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
                 except asyncio.CancelledError:
                     print("plc cancelled")
             return 
-        
 
         if camera_manager.current_camera.get('sn') is None:
             print(f"current camera is None")

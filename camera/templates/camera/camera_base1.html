@@ -2,8 +2,10 @@
 {% load static %}
 
 {% block camera_setting %}
-<h3 data-target="#camera-setting" data-toggle="collapse" style="cursor: pointer;">相机设置</h3>
-<div id="camera-setting" class="collapse show">
+<h3 data-target="#camera-setting" data-toggle="collapse" style="cursor: pointer;">
+    相机设置 <span class="collapse-indicator"></span>
+</h3>
+<div id="camera-setting" class="collapse">
     <div class="mb-3">
         <h5 data-target="#camera-name" data-toggle="collapse" style="cursor: pointer;">相机名</h5>
         <div id="camera-name" class="collapse show">
@@ -68,16 +70,14 @@
 
 
             <div class="row ml-2" id="trigger-settings" style="display: none;">
-                <div class="col">
-                    <label for="triggerDelayTime">Delay (ms)</label>
-                    <input type="number" class="form-control" id="triggerDelayTime" placeholder="Delay (ms)" value="1000">
-                </div>
-                <div class="col">
-                    <label for="trigger-count-input">Trigger Count</label>
-                    <input type="number" class="form-control" id="trigger-count-input" placeholder="Trigger Count" value="1">
-                </div>
-                <div class="col">
-                    <button type="button" id="trigger-btn" class="btn btn-primary">Trigger</button>
+                <div class="input-group" >
+                    <div class="input-group-prepend" >
+                        <span class="input-group-text" >延时(ms)</span>
+                    </div>
+                    <input type="number" class="form-control" id="triggerDelayTime" value="1000">
+                    <div class="input-group-prepend">
+                        <button class="btn btn-outline-secondary" id="trigger-btn" >触发</button>
+                    </div>
                 </div>
             </div>
         </div>
