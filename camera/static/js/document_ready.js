@@ -2,6 +2,18 @@ $(document).ready(function() {
 
     startWS();
 
+    $('#plc-settings').on('show.bs.collapse', function() {
+        $('.collapse-indicator-1').removeClass('fa-chevron-down').addClass('fa-chevron-up');
+    }).on('hide.bs.collapse', function() {
+        $('.collapse-indicator-1').removeClass('fa-chevron-up').addClass('fa-chevron-down');
+    });
+
+    $('#camera-setting').on('show.bs.collapse', function() {
+        $('.collapse-indicator-0').removeClass('fa-chevron-down').addClass('fa-chevron-up');
+    }).on('hide.bs.collapse', function() {
+        $('.collapse-indicator-0').removeClass('fa-chevron-up').addClass('fa-chevron-down');
+    });
+
     const continous_mode_radio = $('#continous-mode');
     $('#select_camera').change(getCameraParameters);
     // Listen for changes on the ae_state radio buttons
@@ -220,7 +232,7 @@ $(document).ready(function() {
         });
     });
 
-    $('#trigger-btn').click(function (e) {
+    $('#trigger-btn').click(function(e) {
         // 阻止<a>标签的默认行为
         e.preventDefault();
         ws.send(JSON.stringify({
@@ -232,7 +244,7 @@ $(document).ready(function() {
 
     $('#save-configure').click(function() {
         const configure = $('#configure-file');
-        if (configure.val()){
+        if (configure.val()) {
             $.ajax({
                 url: save_configure_url,
                 type: 'POST',
@@ -240,10 +252,10 @@ $(document).ready(function() {
                     camera_id: $('#select_camera').val(),
                     config_f: configure.val(),
                 },
-                beforeSend: function (xhr) {
+                beforeSend: function(xhr) {
                     xhr.setRequestHeader("X-CSRFToken", csrftoken);
                 },
-                success: function (data) {
+                success: function(data) {
                     console.log("contrast setting success");
                 }
             });
@@ -252,7 +264,7 @@ $(document).ready(function() {
 
     $('#load-configure').click(function() {
         const configure = $('#configure-file');
-        if (configure.val()){
+        if (configure.val()) {
             $.ajax({
                 url: load_configure_url,
                 type: 'POST',
@@ -260,10 +272,10 @@ $(document).ready(function() {
                     camera_id: $('#select_camera').val(),
                     config_f: configure.val(),
                 },
-                beforeSend: function (xhr) {
+                beforeSend: function(xhr) {
                     xhr.setRequestHeader("X-CSRFToken", csrftoken);
                 },
-                success: function (data) {
+                success: function(data) {
                     console.log("contrast setting success");
                 }
             });
@@ -272,7 +284,7 @@ $(document).ready(function() {
 
     $('#reset-configure').click(function() {
         const configure = $('#configure-file');
-        if (configure.val()){
+        if (configure.val()) {
             $.ajax({
                 url: reset_configure_url,
                 type: 'POST',
@@ -280,13 +292,15 @@ $(document).ready(function() {
                     camera_id: $('#select_camera').val(),
                     config_f: configure.val(),
                 },
-                beforeSend: function (xhr) {
+                beforeSend: function(xhr) {
                     xhr.setRequestHeader("X-CSRFToken", csrftoken);
                 },
-                success: function (data) {
+                success: function(data) {
                     console.log("contrast setting success");
                 }
             });
         }
     });
+
+
 });
