@@ -217,7 +217,7 @@ def set_camera_parameter(hCamera, **kwargs):
         mvsdk.CameraSetAeState(hCamera, int(kwargs['ae_state']))
 
     if 'ae_target' in kwargs:
-        mvsdk.CameraSetAeTarget(hCamera, kwargs['ae_target'])
+        mvsdk.CameraSetAeTarget(hCamera, int(kwargs['ae_target']))
 
     if 'antiflick' in kwargs:
         mvsdk.CameraSetAntiFlick(hCamera, kwargs['antiflick'])

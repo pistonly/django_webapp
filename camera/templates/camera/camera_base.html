@@ -117,11 +117,6 @@
                 </ul>
             </div>
             <!-- 在这里添加一个隐藏的div来存储动态生成的URL -->
-            <div id="camera-list-url" data-url="{% url 'camera_list' %}" style="display: none;"></div>
-            <div id="camera-grab-url" data-url="{% url 'camera_grab' %}" style="display: none;"></div>
-            <div id="save-configure-url" data-url="{% url 'save_configure' %}" style="display: none;"></div>
-            <div id="load-configure-url" data-url="{% url 'load_configure' %}" style="display: none;"></div>
-            <div id="reset-configure-url" data-url="{% url 'reset_configure' %}" style="display: none;"></div>
 
 
         </nav>
@@ -180,10 +175,6 @@
 
 <script>
     var csrftoken = $("[name=csrfmiddlewaretoken]").val();
-    var save_configure_url = $('#save-configure-url').data('url');
-    var reset_configure_url = $('#reset-configure-url').data('url');
-    var load_configure_url = $('#load-configure-url').data('url');
-    var camera_list_url = $("#camera-list-url").data("url");
     var ws;
     var trigger_mode = 0;
 </script>

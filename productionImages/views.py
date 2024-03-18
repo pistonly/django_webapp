@@ -1,5 +1,5 @@
 from django.shortcuts import get_object_or_404, render
-from camera.consumers import camera_manager
+from camera.camera_manager import get_camera_sn
 from camera.camera_process_with_ws import run_asyncio_camera_loop
 import random
 from PIL import Image
@@ -42,8 +42,6 @@ trigger_process_status = {"runing": None, "batch_num": None}
 @api_view(['POST'])
 def start_camera_background(request):
     global stop_event, trigger_process
-    camera_manager.update_camera_list(start_default=False)
-    camera_manager.close_camera()
     batch_number = request.data.get('batch_number')
     user_name = request.user.username
     ws_uri = request.data.get("uri")
@@ -58,7 +56,7 @@ def start_camera_background(request):
     camera_num = batch.camera_num
 
     if trigger_process is None or not trigger_process.is_alive():
-        camera_list = camera_manager.camera_sn_list
+        camera_list = get_camera_sn()
         for sn in camera_list:
             trigger_process = Process(target=run_asyncio_camera_loop, args=(
                 sn,

@@ -28,84 +28,39 @@ $(document).ready(function() {
         }
         // setting
         var exposureMode = $(this).val();
-        $.ajax({
-            url: '/api/camera/parameters/',
-            type: 'POST',
-            data: {
-                camera_id: $('#select_camera').val(),
-                ae_state: exposureMode,
-            },
-            beforeSend: function(xhr) {
-                xhr.setRequestHeader("X-CSRFToken", csrftoken);
-            },
-            success: function(response) {
-                // 成功时的处理，例如显示一个消息
-                console.log('ae_state mode changed to: ' + exposureMode);
-                // 也可以在页面上显示一些反馈
-                $('#status').text('ae_state mode changed to: ' + exposureMode);
-            },
-            error: function(xhr, status, error) {
-                // 错误处理
-                console.error('An error occurred: ' + error);
-                $('#status').text('Error changing ae_state mode.');
+        ws.send(JSON.stringify({
+            "set_camera": 1,
+            "sn": $('#select_camera').val(),
+            "params": {
+                "ae_state": exposureMode
             }
-        });
+        }));
     });
 
-    // update camera list
-    getCameraList();
 
-    $('#manualExposureTime').change(function() {
-        $.ajax({
-            url: '/api/camera/parameters/',
-            type: 'POST',
-            data: {
-                camera_id: $('#select_camera').val(),
+    $('#manualExposureTime-btn').click(function() {
+        ws.send(JSON.stringify({
+            "set_camera": 1,
+            "sn": $('#select_camera').val(),
+            "params": {
                 exposureTime: $('#manualExposureTime').val(),
-            },
-            beforeSend: function(xhr) {
-                xhr.setRequestHeader("X-CSRFToken", csrftoken);
-            },
-            success: function(response) {
-                // 成功时的处理，例如显示一个消息
-                console.log('exposure time changed');
-                // 也可以在页面上显示一些反馈
-                $('#status').text('exposure time changed');
-            },
-            error: function(xhr, status, error) {
-                // 错误处理
-                console.error('An error occurred: ' + error);
-                $('#status').text('Error changing exposure time.');
             }
-        });
+        }));
     });
 
-    // resolution
-    $('.resolution-option').click(function(e) {
-        // 阻止<a>标签的默认行为
-        e.preventDefault();
-        // 获取点击的分辨率选项的文本，并设置到输入框中
-        var resolution = $(this).text();
-        $('#resolution-input').val(resolution);
-        // setting 
-        $.ajax({
-            url: '/api/camera/parameters/',
-            type: 'POST',
-            data: {
-                camera_id: $('#select_camera').val(),
-                resolution: resolution,
-            },
-            beforeSend: function(xhr) {
-                xhr.setRequestHeader("X-CSRFToken", csrftoken);
-            },
-            success: function(data) {
-                console.log("resolution setting success");
+    $('#ae_target-btn').click(function() {
+        console.log("here");
+        ws.send(JSON.stringify({
+            "set_camera": 1,
+            "sn": $('#select_camera').val(),
+            "params": {
+                ae_target: $('#ae_target').val(),
             }
-        });
+        }));
     });
 
     // config 
-    $('#configure-files').on('click', '.config-option', function () {
+    $('#configure-files').on('click', '.config-option', function() {
         var text = $(this).text(); // 获取点击项的文本
         $('#configure-file').val(text); // 将文本设置为input的值
     });
@@ -128,60 +83,29 @@ $(document).ready(function() {
         }
         trigger_mode = $(this).val();
         // setting
-        $.ajax({
-            url: '/api/camera/parameters/',
-            type: 'POST',
-            data: {
-                camera_id: $('#select_camera').val(),
+        ws.send(JSON.stringify({
+            "set_camera": 1,
+            "sn": $('#select_camera').val(),
+            "params": {
                 triggerMode: trigger_mode,
-            },
-            beforeSend: function(xhr) {
-                xhr.setRequestHeader("X-CSRFToken", csrftoken);
-            },
-            success: function(data) {
-                console.log("triggerMode setting success");
-                if (!continous_mode_radio.is(':checked')) {
-                    $('#start-preview').prop('disabled', true);
-                    $('#stop-preview').prop('disabled', true);
-                }
             }
-        });
+        }));
+        if (!continous_mode_radio.is(':checked')) {
+            $('#start-preview').prop('disabled', true);
+            $('#stop-preview').prop('disabled', true);
+        }
+
     });
 
     $('#triggerDelayTime').change(function() {
         // setting
-        $.ajax({
-            url: '/api/camera/parameters/',
-            type: 'POST',
-            data: {
-                camera_id: $('#select_camera').val(),
+        ws.send(JSON.stringify({
+            "set_camera": 1,
+            "sn": $('#select_camera').val(),
+            "params": {
                 triggerDelayTime: $(this).val(),
-            },
-            beforeSend: function(xhr) {
-                xhr.setRequestHeader("X-CSRFToken", csrftoken);
-            },
-            success: function(data) {
-                console.log("triggerDelayTime setting success");
             }
-        });
-    });
-
-    $('#triggerCount').change(function() {
-        // setting
-        $.ajax({
-            url: '/api/camera/parameters/',
-            type: 'POST',
-            data: {
-                camera_id: $('#select_camera').val(),
-                triggerCount: $(this).val(),
-            },
-            beforeSend: function(xhr) {
-                xhr.setRequestHeader("X-CSRFToken", csrftoken);
-            },
-            success: function(data) {
-                console.log("triggerDelayTime setting success");
-            }
-        });
+        }));
     });
 
     // lut mapping
@@ -191,20 +115,13 @@ $(document).ready(function() {
 
     $('#gamma-range').on('mouseup', function() {
         // 发送数据到后端url1
-        $.ajax({
-            url: '/api/camera/parameters/',
-            type: 'POST',
-            data: {
-                camera_id: $('#select_camera').val(),
+        ws.send(JSON.stringify({
+            "set_camera": 1,
+            "sn": $('#select_camera').val(),
+            "params": {
                 lut_gamma: $(this).val(),
-            },
-            beforeSend: function(xhr) {
-                xhr.setRequestHeader("X-CSRFToken", csrftoken);
-            },
-            success: function(data) {
-                console.log("lut_gamma setting success");
             }
-        });
+        }));
     });
 
     $('#contrast-range').on('input', function() {
@@ -213,43 +130,23 @@ $(document).ready(function() {
 
     $('#contrast-range').on('mouseup', function() {
         // 发送数据到后端url1
-        $.ajax({
-            url: '/api/camera/parameters/',
-            type: 'POST',
-            data: {
-                camera_id: $('#select_camera').val(),
+        ws.send(JSON.stringify({
+            "set_camera": 1,
+            "sn": $('#select_camera').val(),
+            "params": {
                 lut_contrast: $(this).val(),
-            },
-            beforeSend: function(xhr) {
-                xhr.setRequestHeader("X-CSRFToken", csrftoken);
-            },
-            success: function(data) {
-                console.log("contrast setting success");
             }
-        });
+        }));
     });
 
-    $('#name-btn').click(function(e){
-        $.ajax({
-            url: '/api/camera/parameters/',
-            type: 'POST',
-            data: {
+    $('#name-btn').click(function(e) {
+        ws.send(JSON.stringify({
+            "set_camera": 1,
+            "sn": $('#select_camera').val(),
+            "params": {
                 name: $('#camera-name-sel').val(),
-            },
-            beforeSend: function (xhr) {
-                xhr.setRequestHeader("X-CSRFToken", csrftoken);
-            },
-            success: function (response) {
-                console.log("name-changed");
-                $('#status').text('name changed');
-            },
-            error: function (xhr, status, error) {
-                // 错误处理
-                console.error('An error occurred: ' + error);
-                $('#status').text('Error changing name.');
             }
-
-        });
+        }));
     });
 
     $('#trigger-btn').click(function(e) {
@@ -265,62 +162,34 @@ $(document).ready(function() {
     $('#save-configure').click(function() {
         const configure = $('#configure-file');
         if (configure.val()) {
-            $.ajax({
-                url: save_configure_url,
-                type: 'POST',
-                data: {
-                    camera_id: $('#select_camera').val(),
-                    config_f: configure.val(),
-                },
-                beforeSend: function(xhr) {
-                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
-                },
-                success: function(data) {
-                    console.log("contrast setting success");
-                }
-            });
+            ws.send(JSON.stringify({
+                "save_configure": 1,
+                "sn": $('#select_camera').val(),
+                config_f: configure.val(),
+            }));
         }
     });
 
-    $('#load-configure').click(function() {
+    $('#load-configure').click(function () {
         const configure = $('#configure-file');
         if (configure.val()) {
-            $.ajax({
-                url: load_configure_url,
-                type: 'POST',
-                data: {
-                    camera_id: $('#select_camera').val(),
-                    config_f: configure.val(),
-                },
-                beforeSend: function(xhr) {
-                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
-                },
-                success: function(data) {
-                    console.log("contrast setting success");
-                }
-            });
+            ws.send(JSON.stringify({
+                "load_configure": 1,
+                "sn": $('#select_camera').val(),
+                config_f: configure.val(),
+            }));
         }
     });
 
-    $('#reset-configure').click(function() {
+    $('#reset-configure').click(function () {
         const configure = $('#configure-file');
         if (configure.val()) {
-            $.ajax({
-                url: reset_configure_url,
-                type: 'POST',
-                data: {
-                    camera_id: $('#select_camera').val(),
-                    config_f: configure.val(),
-                },
-                beforeSend: function(xhr) {
-                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
-                },
-                success: function(data) {
-                    console.log("contrast setting success");
-                }
-            });
+            ws.send(JSON.stringify({
+                "reset_configure": 1,
+                "sn": $('#select_camera').val(),
+                config_f: configure.val(),
+            }));
         }
     });
-
 
 });

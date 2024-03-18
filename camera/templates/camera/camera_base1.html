@@ -36,14 +36,21 @@
                 </div>
             </div>
             <!-- Auto and manual ae_state settings divs go here -->
-            <div id="auto-exposure-settings" class="mt-2">
-                自动曝光目标数值：<input type="number" class="form-control" id="ae_target" min="0" step="1" value="100">
+            <div id="auto-exposure-settings" class="input-group">
+                <div class="input-group-prepend" >
+                    <span class="input-group-text">目标值：</span>
+                </div>
+                <input type="number" class="form-control" id="ae_target" min="0" step="1" value="100">
+                <div class="input-group-append">
+                    <button class="btn btn-outline-secondary" type="button" id="ae_target-btn" >确定</button>
+                </div>
             </div>
 
             <div class="input-group mb-3" style="display: none;" id="manual-exposure-settings">
                 <input type="number" class="form-control" id="manualExposureTime" placeholder="设置曝光时间" aria-label="ae_state Time" min="0" step="1" value="100">
                 <div class="input-group-append">
                     <span class="input-group-text">us</span>
+                    <button class="btn btn-outline-secondary" type="button" id="manualExposureTime-btn" >确定</button>
                 </div>
             </div>
         </div>
@@ -155,9 +162,6 @@
                     <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">选择</button>
                     <div class="dropdown-menu" id="configure-files">
                         <a class="dropdown-item config-option" value="configure_000">配置1</a>
-                        <a class="dropdown-item config-option" value="configure_001">配置2</a>
-                        <a class="dropdown-item config-option" value="configure_002">配置3</a>
-                        <a class="dropdown-item config-option" value="configure_003">配置4</a>
                     </div>
                 </div>
                 <div class="input-group-append">

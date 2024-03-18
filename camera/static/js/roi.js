@@ -54,91 +54,44 @@ function realCoor2imageCoor(realX, realY, scale, offset) {
 }
 
 function setROI0(x0, y0, x1, y1) {
-    $.ajax({
-        url: '/api/camera/parameters/',
-        type: 'POST',
-        data: {
+    ws.send(JSON.stringify({
+        "set_camera": 1,
+        "sn": $('#select_camera').val(),
+        "params": {
             roi0: [x0, y0, x1, y1]
-        },
-        beforeSend: function(xhr) {
-            xhr.setRequestHeader("X-CSRFToken", csrftoken);
-        },
-        success: function() {
-            // 成功时的处理，例如显示一个消息
-            console.log('roi setted');
-        },
-        error: function(xhr, status, error) {
-            // 错误处理
-            console.error('An error occurred: ' + error);
-            $('#status').text('Error changing ae_state mode.');
         }
-    });
+    }));
 }
 
 function setROIDisable0(val) {
-    $.ajax({
-        url: '/api/camera/parameters/',
-        type: 'POST',
-        data: {
+    ws.send(JSON.stringify({
+        "set_camera": 1,
+        "sn": $('#select_camera').val(),
+        "params": {
             roi0_disabled: val
-        },
-        beforeSend: function(xhr) {
-            xhr.setRequestHeader("X-CSRFToken", csrftoken);
-        },
-        success: function() {
-            // 成功时的处理，例如显示一个消息
-            console.log('roidisable0 setted');
-        },
-        error: function(xhr, status, error) {
-            // 错误处理
-            console.error('An error occurred: ' + error);
-            $('#status').text('Error roidisable0.');
         }
-    });
+    }));
+
 }
 
 function setROIDisable1(val) {
-    $.ajax({
-        url: '/api/camera/parameters/',
-        type: 'POST',
-        data: {
+    ws.send(JSON.stringify({
+        "set_camera": 1,
+        "sn": $('#select_camera').val(),
+        "params": {
             roi1_disabled: val
-        },
-        beforeSend: function(xhr) {
-            xhr.setRequestHeader("X-CSRFToken", csrftoken);
-        },
-        success: function() {
-            // 成功时的处理，例如显示一个消息
-            console.log('roidisable0 setted');
-        },
-        error: function(xhr, status, error) {
-            // 错误处理
-            console.error('An error occurred: ' + error);
-            $('#status').text('Error roidisable0.');
         }
-    });
+    }));
 }
 
 function setROI1(x0, y0, x1, y1) {
-    $.ajax({
-        url: '/api/camera/parameters/',
-        type: 'POST',
-        data: {
+    ws.send(JSON.stringify({
+        "set_camera": 1,
+        "sn": $('#select_camera').val(),
+        "params": {
             roi1: [x0, y0, x1, y1]
-        },
-        beforeSend: function(xhr) {
-            xhr.setRequestHeader("X-CSRFToken", csrftoken);
-        },
-        success: function() {
-            // 成功时的处理，例如显示一个消息
-            console.log('roi setted');
-        },
-        error: function(xhr, status, error) {
-            // 错误处理
-            console.error('An error occurred: ' + error);
-            $('#status').text('Error changing ae_state mode.');
         }
-    });
+    }));
 }
 // Mouse Position and RGB Logic
 document.addEventListener('DOMContentLoaded', function() {
@@ -147,7 +100,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const roiCanvas = document.getElementById('roiCanvas');
 
     // 确保图片已加载获取其真实尺寸
-    image.onload = function () {
+    image.onload = function() {
         realWidth = this.naturalWidth;
         realHeight = this.naturalHeight;
 
@@ -170,7 +123,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 });
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', function() {
     const image = document.getElementById('camera-image');
     const dragHandle = document.getElementById('dragHandle');
     const infoPanel = document.getElementById('infoPanel');
@@ -410,7 +363,7 @@ document.addEventListener('DOMContentLoaded', function () {
         ROIButtonText1();
     });
 
-    function check_roi_fun0 () {
+    function check_roi_fun0() {
         if (this.checked) {
             reDrawRoi_flag0 = true;
             setROIDisable0(0);
@@ -424,7 +377,7 @@ document.addEventListener('DOMContentLoaded', function () {
         redrawROI1();
     }
 
-    function check_roi_fun1(){
+    function check_roi_fun1() {
         if (this.checked) {
             reDrawRoi_flag1 = true;
             setROIDisable1(0);
@@ -448,8 +401,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // 创建一个观察器实例并传入回调函数
-    var observer = new MutationObserver(function (mutations) {
-        mutations.forEach(function (mutation) {
+    var observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
             if (mutation.attributeName === 'style') {
                 // 在这里调用你的函数
                 func();
@@ -461,7 +414,11 @@ document.addEventListener('DOMContentLoaded', function () {
     var img = document.querySelector('#camera-image');
 
     // 配置观察选项:
-    var config = { attributes: true, childList: true, subtree: true };
+    var config = {
+        attributes: true,
+        childList: true,
+        subtree: true
+    };
 
     // 传入目标节点和观察选项开始观察
     observer.observe(img, config);
