@@ -14,7 +14,7 @@ def get_client_id(data:dict, connected_clients:dict):
         return "web", None
     else:
         if "update" in data:
-            for i in range(18):
+            for i in range(17, -1, -1):
                 client_id = f"{data['client_id']}_{i}"
                 if client_id not in connected_clients:
                     return client_id, i
@@ -38,21 +38,6 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                 del self.connected_clients[client_id]
                 break
 
-        # remove from group
-        # try:
-        #     gallery_id = int(self.client_id.split("_")[-1])
-        #     if gallery_id < 9:
-        #         group_name = "front"
-        #     else:
-        #         group_name = "back"
-
-        #     await self.channel_layer.group_discard(
-        #         group_name,
-        #         self.channel_name
-        #     )
-        # except Exception as e:
-        #     print(e)
-
         # task
         if self.plc_check_task is not None:
             self.plc_check_task.cancel()
@@ -71,19 +56,6 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                 print("-------------------------------")
 
                 self.connected_clients[self.client_id] = self
-                # # add group
-                # if gallery_id is not None and gallery_id < 9:
-                #     group_name = "front"
-                #     await self.channel_layer.group_add(
-                #         group_name,
-                #         self.channel_name
-                #     )
-                # elif gallery_id is not None:
-                #     group_name = "back"
-                #     await self.channel_layer.group_add(
-                #         group_name,
-                #         self.channel_name
-                #     )
 
                 await self.send(text_data=json.dumps({"status": "connected", "client_id": self.client_id}))
             else:
@@ -130,19 +102,19 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
 
 
     async def check_plc_reg(self):
-        # plc = plcControl()
-        # if not plc.connect():
-        #     print("plc is offline")
-        #     return
+        plc = plcControl()
+        if not plc.connect():
+            print("~~~~~~~~~~~~~~~~~~~~ check ~~~~~~~~~~~~~~~~~~~~")
+            print("plc is offline")
+            print("~~~~~~~~~~~~~~~~~~~~ check ~~~~~~~~~~~~~~~~~~~~")
+            return
 
         print("~~~~~~~~~~~~~~~~~~~~ check ~~~~~~~~~~~~~~~~~~~~")
         while self.plc_checking:
-            # M1_val = plc.get_M("M1")
-            M1_val = 1
+            M1_val = plc.get_M("M1")
             if M1_val:
-                print("here")
+                print("m1")
                 M1_val = 0
-                # plc.set_M("M1", 0)
                 for _id, client in self.connected_clients.items():
                     if _id == "web":
                         continue
@@ -151,15 +123,8 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                             await client.send("trig")
                     except:
                         pass
-                # await self.channel_layer.group_send(
-                #     "front",
-                #     {
-                #         "type": "group_message",
-                #         "message": "trig"
-                #     }
-                # )
-            await asyncio.sleep(3)
-            M4_val = 1
+                plc.set_M("M1", 0)
+            M4_val = plc.get_M("M4")
             if M4_val:
                 print("m4")
                 for _id, client in self.connected_clients.items():
@@ -170,22 +135,5 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                             await client.send("trig")
                     except:
                         pass
-            # M4_val = plc.get_M("M4")
-            # if M4_val:
-            #     plc.set_M("M4", 0)
-                # await self.channel_layer.group_send(
-                #     "back",
-                #     {
-                #         "type": "group_message",
-                #         "message": "trig"
-                #     }
-                # )
-            await asyncio.sleep(3)
+            await asyncio.sleep(0.01)
 
-
-    async def group_message(self, event):
-        message = event['message']
-
-        await self.send(text_data=json.dumps({
-            'message': message
-        }))

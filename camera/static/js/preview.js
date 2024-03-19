@@ -15,6 +15,10 @@ function startWS() {
 
     ws.onmessage = function(e) {
         var data = JSON.parse(e.data);
+        if (data.hasOwnProperty("message")) {
+            console.log(data.message);
+        }
+
         // camera_list
         if (data.hasOwnProperty("cameras")) {
             updateCameraList(data.cameras);
@@ -25,10 +29,6 @@ function startWS() {
         if (data.hasOwnProperty("camera_info")) {
             updateSettingPan(data.camera_info);
             return;
-        }
-
-        if (data.hasOwnProperty("message")) {
-            console.log(data.message);
         }
 
         // arb-reg-r
@@ -44,17 +44,19 @@ function startWS() {
         // preview
         if (data.frame) {
             $("#camera-image").attr("src", "data:image/jpeg;base64," + data.frame);
-        } else {
-            // plc
+            return;
+        }
+
+        if (data.hasOwnProperty("plc_online")) {
             if (data.plc_online) {
                 $('#plc-status-on').css('display', 'block');
                 $('#plc-status-off').css('display', 'none');
 
-                data.M_data.forEach(function(m) {
+                data.M_data.forEach(function (m) {
                     console.log(m);
                     $(m.id).val(m.val);
                 });
-                data.D_data.forEach(function(d) {
+                data.D_data.forEach(function (d) {
                     console.log(d);
                     $(d.id).val(d.val);
                 });
@@ -64,6 +66,14 @@ function startWS() {
                 $('#plc-status-off').css('display', 'block');
                 $('#offline-txt').text("离线，请点击连接");
             }
+        }
+
+        if (data.hasOwnProperty("plc_trigger_return")) {
+            $('#trigger-btn').prop("disabled", false);
+        }
+
+        if (data.hasOwnProperty("soft_trigger_return")) {
+            $('#trigger-btn').prop("disabled", false);
         }
     };
 

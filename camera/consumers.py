@@ -26,9 +26,11 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
         self.camera_last_photo = []
         self.gallerys = []
         self.product_show_task = None
+        self.plc_trigger_task = None
         self.batch_number = None
         self.plc_check_task = None
         self.plc_checking = False
+        self.plc_trigger_checking = False
         self.plc_reg_vals = {}
         self.plc = plcControl()
 
@@ -68,10 +70,23 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
             success, message = self.camera_manager.start_camera(camera_sn)
         return success, message
 
+    async def stop_plc_check(self):
+        self.plc_checking = False
+        if self.plc_check_task:
+            self.plc_check_task.cancel()
+            try:
+                await self.plc_check_task
+            except asyncio.CancelledError:
+                print("plc cancelled")
+
     async def receive(self, text_data: str, bytes_data=None):
         print(f"received data: {text_data}, bytes: {bytes_data}")
         text_data_json = json.loads(text_data)
         camera_sn = text_data_json.get("sn")
+
+        if "plc_trigger" in text_data_json:
+            if self.plc_trigger_task is None:
+                self.plc_trigger_task = asyncio.create_task(self.check_plc_trigger(camera_sn))
 
         if "get_camera_list" in text_data_json:
             self.camera_manager.update_camera_list(False)
@@ -144,44 +159,60 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
 
         plc_stop_check = text_data_json.get("plc_stop_check")
         if plc_stop_check:
-            self.plc_checking = False
-            if self.plc_check_task:
-                self.plc_check_task.cancel()
-                try:
-                    await self.plc_check_task
-                except asyncio.CancelledError:
-                    print("plc cancelled")
+            await self.stop_plc_check()
             return 
 
         trigger_mode = text_data_json.get('trigger_mode')
-        self.trigger_mode = int(trigger_mode) if trigger_mode is not None else None
-        if "start_preview" in text_data_json and (self.trigger_mode is not None):
-            if self.trigger_mode == 0 and self.camera_feed_task is None:
+        trigger_mode = int(trigger_mode) if trigger_mode is not None else None
+        if trigger_mode is not None:
+            if trigger_mode != 2:
+                # stop trigger checking
+                if self.plc_trigger_task is not None:
+                    self.plc_trigger_checking = False
+                    await self.plc_trigger_task
+                    self.plc_trigger_task = None
+
+            if trigger_mode != 0:
+                # stop
+                if self.camera_feed_task is not None:
+                    self.preview = False
+                    await self.camera_feed_task
+                    self.camera_feed_task = None
+
+        if "soft_trigger" in text_data_json and trigger_mode == 1:
+            message = ""
+            success, buffer = self.camera_manager.soft_trigger(camera_sn)
+            if not success:
+                print("ws:: soft_trigger failed: ", buffer)
+                message = buffer
+            else:
+                await self.send_frame(buffer)
+                message = "soft trigger success"
+            await self.send(json.dumps({"soft_trigger_return": 1, "message": message}))
+            return
+
+        if "soft_trigger" in text_data_json and trigger_mode == 2:
+            print("plc trigger")
+            if self.plc_trigger_task is None:
+                print("plc trigger task")
+                self.plc_trigger_task = asyncio.create_task(self.check_plc_trigger(camera_sn))
+            return 
+            
+        if "start_preview" in text_data_json and trigger_mode == 0:
+            if self.camera_feed_task is None:
                 self.preview = True
                 self.camera_feed_task = asyncio.create_task(self.camera_feed(camera_sn))
                 print("ws task started")
+            return
 
-        elif "stop_preview" in text_data_json:
+
+        if "stop_preview" in text_data_json:
             self.preview = False
             if self.camera_feed_task is not None:
                 await self.camera_feed_task
                 self.camera_feed_task = None
 
-        elif self.trigger_mode == 1:
-            if self.camera_feed_task:
-                # close task
-                self.preview = False
-                if self.camera_feed_task is not None:
-                    await self.camera_feed_task
-                    self.camera_feed_task = None
 
-            # trigger
-            if "soft_trigger" in text_data_json:
-                success, buffer = self.camera_manager.soft_trigger(camera_sn)
-                if not success:
-                    print("ws:: soft_trigger failed: ", buffer)
-                else:
-                    await self.send_frame(buffer)
 
     async def send_frame(self, frame):
         if isinstance(frame, io.BytesIO):
@@ -217,6 +248,28 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
         except asyncio.CancelledError:
             print("camera feed cancelled")
             pass
+
+    async def check_plc_trigger(self, camera_sn):
+        self.plc.connect()
+        self.plc_trigger_checking = True
+        message = ""
+        while self.plc_trigger_checking:
+            success, v = self.plc.get_M("M1")
+            if success:
+                if int(v) > 0:
+                    self.plc_trigger_checking = False
+                    success, buffer = self.camera_manager.soft_trigger(camera_sn)
+                    if not success:
+                        message = buffer
+                        print("plc trigger failed: ", buffer)
+                    else:
+                        await self.send_frame(buffer)
+                        message = "plc_trigger_success"
+                    self.plc.set_M("M1", 0)
+            await asyncio.sleep(0.01)
+        await self.send(json.dumps({"plc_trigger_return":1, "message": message}))
+        self.plc_trigger_task = None
+
 
     async def check_plc_background(self):
         await self.init_plc_check()
@@ -278,6 +331,15 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
                 await self.plc_check_task
             except asyncio.CancelledError:
                 print("plc cancelled")
+
+        # plc trigger
+        self.plc_trigger_checking = False
+        if self.plc_trigger_task:
+            self.plc_trigger_task.cancel()
+            try:
+                await self.plc_trigger_task
+            except asyncio.CancelledError:
+                print("plc trigger cancelled")
 
     async def get_camera_frame(self):
         success, buffer = self.camera_manager.get_one_frame()

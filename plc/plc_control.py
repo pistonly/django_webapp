@@ -94,7 +94,7 @@ class plcControl(object):
             return False, str(e)
 
 
-    def get_M(self, address="m201", value=1):
+    def get_M(self, address="m201"):
         if not self.client.connected:
             return False, "client is not connected"
         try:
