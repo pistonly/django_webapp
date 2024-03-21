@@ -3,31 +3,29 @@ import asyncio
 import json
 from plc.plc_control import plcControl
 from channels.layers import get_channel_layer
+from asyncio import Lock 
 
 
-
-def get_client_id(data:dict, connected_clients:dict):
-    '''
-    return: client_id, gallery_id
-    '''
-    if data['client_id'] == "web":
-        return "web", None
-    else:
-        if "update" in data:
-            for i in range(17, -1, -1):
-                client_id = f"{data['client_id']}_{i}"
-                if client_id not in connected_clients:
-                    return client_id, i
-        else:
-            gallery_id = int(data['client_id'].split("_")[-1])
-            return data['client_id'], gallery_id
+async def get_correct_client_id(client_info: list, connected_clients: dict, camera_num=18):
+    if client_info[-1] is not None:
+        for i in range(camera_num):
+            c_id = f"{client_info[1]}_{i}"
+            if c_id not in connected_clients:
+                connected_clients[c_id] = client_info[0]
+                connected_clients[c_id].client_id = c_id
+                await connected_clients[c_id].send(text_data=json.dumps({"status": "connected",
+                                                                   "client_id": c_id}))
+                return
 
 
 class PLCControlConsumer(AsyncWebsocketConsumer):
     connected_clients = {}
+    camera_clients_list = []
     plc_check_task = None
     channel_layer = get_channel_layer()
     plc_checking = False
+    _lock = Lock()
+    camera_num = 18
 
     async def connect(self):
         await self.accept()
@@ -49,17 +47,22 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
         print("-----------------------------")
 
         if 'client_id' in data:
-            self.client_id, gallery_id = get_client_id(data, self.connected_clients)
-            if self.client_id not in self.connected_clients:
-                print("-------------------------------")
-                print(self.client_id)
-                print("-------------------------------")
+            client_id = data['client_id']
+            if "update" not in data:
+                if client_id not in self.connected_clients:
+                    self.client_id = client_id
+                    self.connected_clients[client_id] = self
+                    await self.send(text_data=json.dumps({"status": "connected", "client_id": client_id}))
+                else:
+                    await self.send(text_data=json.dumps({"status": "client_id error"}))
 
-                self.connected_clients[self.client_id] = self
+            if client_id != "web":
+                async with self._lock:
+                    self.camera_clients_list.append([self, client_id, data.get('update')])
+                    if len(self.camera_clients_list) >= self.camera_num:
+                        [await get_correct_client_id(c_i, self.connected_clients, self.camera_num) for c_i in self.camera_clients_list]
 
-                await self.send(text_data=json.dumps({"status": "connected", "client_id": self.client_id}))
-            else:
-                await self.send(text_data=json.dumps({"status": "wrong id"}))
+
             return
 
         if "start" in data:
@@ -94,11 +97,40 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                 _id = int(gallery_id.split("_")[-1])
                 row, col = _id % 3, _id // 3
                 img_id = f"#r-{row}-c-{col}"
-
-                await client.send(text_data=json.dumps({"gallery_id": gallery_id, "img_id": img_id}))
+                data.update({"img_id": img_id})
+                await client.send(text_data=json.dumps(data))
                 print(f"client:{client}, sending")
             else:
                 print(f"target: {target} not in clients")
+
+    async def simulate_check(self):
+        while self.plc_checking:
+            await asyncio.sleep(3)
+            M1_val = 1
+            if M1_val:
+                print("m1")
+                M1_val = 0
+                for _id, client in self.connected_clients.items():
+                    if _id == "web":
+                        continue
+                    try:
+                        if int(_id.split("_")[-1]) < 9:
+                            await client.send("trig")
+                    except:
+                        pass
+            await asyncio.sleep(3)
+            M4_val = 1
+            if M4_val:
+                print("m4")
+                for _id, client in self.connected_clients.items():
+                    if _id == "web":
+                        continue
+                    try:
+                        if int(_id.split("_")[-1]) >= 9:
+                            await client.send("trig")
+                    except:
+                        pass
+
 
 
     async def check_plc_reg(self):
@@ -107,6 +139,8 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
             print("~~~~~~~~~~~~~~~~~~~~ check ~~~~~~~~~~~~~~~~~~~~")
             print("plc is offline")
             print("~~~~~~~~~~~~~~~~~~~~ check ~~~~~~~~~~~~~~~~~~~~")
+            await self.simulate_check()
+
             return
 
         print("~~~~~~~~~~~~~~~~~~~~ check ~~~~~~~~~~~~~~~~~~~~")
@@ -135,5 +169,6 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                             await client.send("trig")
                     except:
                         pass
+                plc.set_M("M4", 0)
             await asyncio.sleep(0.01)
 

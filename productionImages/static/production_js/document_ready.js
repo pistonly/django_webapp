@@ -42,30 +42,21 @@ function startWS() {
         console.log(e);
         const data = JSON.parse(e.data);
         if (data.img_id) {
-            update_thumbnail(data.img_id, data.gallery_id);
+            update_thumbnail(data);
         }
     };
 }
 
-function update_thumbnail(img_id, gallery_id) {
+function update_thumbnail(data) {
     console.log("update thumbnail");
-    $.ajax({
-        url: gallery_url,
-        type: "GET",
-        data: { "gallery_title": gallery_id },
-        success: function (data) {
-            if (data.thumbnail) {
-                $(img_id).attr({
-                    src: data.thumbnail,
-                    alt: data.title,
-                    'data-original-url': data.url,
-                    'data-title': data.title
-                });
-            } else {
-                console.log(data);
-            }
-        }
-    });
+    if (data.thumbnail) {
+        $(data.img_id).attr({
+            src: data.thumbnail,
+            alt: data.title,
+            'data-original-url': data.url,
+            'data-title': data.title
+        });
+    }
 }
 
 $(document).ready(function () {

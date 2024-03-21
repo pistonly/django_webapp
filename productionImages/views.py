@@ -1,6 +1,6 @@
 from django.shortcuts import get_object_or_404, render
 from camera.camera_manager import get_camera_sn
-from camera.camera_process_with_ws import run_asyncio_camera_loop
+from camera.camera_process_with_ws_model import run_asyncio_camera_loop
 import random
 from PIL import Image
 import numpy as np
@@ -61,18 +61,17 @@ def start_camera_background(request):
             trigger_process = Process(target=run_asyncio_camera_loop, args=(
                 sn,
                 batch_number,
-                ws_uri,
-                upload_url))
+                ws_uri
+                ))
             trigger_process.start()
-        time.sleep(3)
         # start random camera 
         if len(camera_list) < camera_num:
             for _ in range(camera_num - len(camera_list)):
                 trigger_process = Process(target=run_asyncio_camera_loop, args=(
                     "",
                     batch_number,
-                    ws_uri,
-                    upload_url))
+                    ws_uri
+                    ))
                 trigger_process.start()
 
         return Response({"processing is started"})

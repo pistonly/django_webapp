@@ -22,3 +22,11 @@
 #+end_src
 
 
+
+* mysql
+
+** start server @windows
+#+begin_src bash
+  net start MySQL80
+#+end_src
+
