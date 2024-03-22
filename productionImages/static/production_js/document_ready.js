@@ -23,7 +23,7 @@ function searchProduct(){
 }
 
 var ws_plc;
-
+var start_status = false;
 function startWS() {
     ws_plc = new WebSocket("ws://" + window.location.host + "/ws/plc_check/");
     ws_plc.onopen = function () {
@@ -39,16 +39,54 @@ function startWS() {
         console.error("ws_plc WebSocket error: ", e);
     };
     ws_plc.onmessage = function(e) {
-        console.log(e);
+        // console.log(e);
         const data = JSON.parse(e.data);
         if (data.img_id) {
             update_thumbnail(data);
         }
+        if (data.message) {
+            console.log(data.message);
+        }
+        if (data.status) {
+            console.log(data);
+            if (data.status == "duplicated") {
+                alert("其他的网页正在运行");
+            } else {
+                if (data.plc_checking) {
+                    set_current_running(data.current_product);
+                    startOrstop(false);
+                } else {
+                    startOrstop(true);
+                }
+            }
+        }
+
+        if (data.start_status) {
+            if (data.start_status == "success") {
+                startOrstop(false);
+            } else {
+                setTimeout(()=>{
+                    ws_plc.send(JSON.stringify({start: 1}));
+                }, 300);
+            }
+        }
     };
+}
+function startOrstop(start) {
+    if (start) {
+        $('#start-camera-background').prop("disabled", false);
+        $('#stop-camera-background').prop("disabled", true);
+    } else {
+        $('#start-camera-background').prop("disabled", true);
+        $('#stop-camera-background').prop("disabled", false);
+    }
+}
+
+function set_current_running(product) {
+    $('#production-input').val(product).prop("disabled", true);
 }
 
 function update_thumbnail(data) {
-    console.log("update thumbnail");
     if (data.thumbnail) {
         $(data.img_id).attr({
             src: data.thumbnail,
@@ -60,7 +98,7 @@ function update_thumbnail(data) {
 }
 
 $(document).ready(function () {
-    getLatestProduct();
+    // getLatestProduct();
     searchProduct();
     startWS();
 
@@ -87,11 +125,14 @@ $(document).ready(function () {
                 upload_url: $('#upload-url').data('url')
             },
             beforeSend: function (xhr) {
+                $('#production-input').prop("disabled", true);
+                $('#start-camera-background').prop("disabled", true);
+                $('#stop-camera-background').prop("disabled", true);
                 xhr.setRequestHeader("X-CSRFToken", csrftoken);
             },
             success: function(response) {
-                ws_plc.send(JSON.stringify({start: 1}));
                 console.log("start success");
+                ws_plc.send(JSON.stringify({start: 1}));
             }
         });
     });
@@ -99,6 +140,7 @@ $(document).ready(function () {
     $('#stop-camera-background').click(function () {
         if (ws_plc && ws_plc.readyState === WebSocket.OPEN){
             ws_plc.send(JSON.stringify({"stop_signal": 1}));
+            startOrstop(true);
         }
     });
 

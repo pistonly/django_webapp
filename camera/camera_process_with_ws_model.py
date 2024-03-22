@@ -108,7 +108,7 @@ def capture_and_upload(camera, gallery_title):
     else:
         img_io = get_one_image(camera)
     data = prepare_one_image(img_io, gallery_title, camera['camera_info'])
-    logging.info(f"{gallery_title}: get one immage")
+    # logging.info(f"{gallery_title}: get one immage")
     gallery = Gallery.objects.get(title=gallery_title)
     photo = Photo(**data)
     photo.save()
@@ -153,7 +153,7 @@ async def websocket_client(camera, gallery_title, uri):
                     break
 
                 elif message == "trig":
-                    logging.info("Capturing and uploading image.")
+                    # logging.info("Capturing and uploading image.")
                     loop = asyncio.get_running_loop()
                     img_info = await loop.run_in_executor(None, capture_and_upload, camera, gallery_title)
 
