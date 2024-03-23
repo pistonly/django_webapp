@@ -23,7 +23,7 @@ sys.path.insert(0, "..")
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "myproject.settings")
 django.setup()
 
-from photologue.models import Gallery, Photo
+from photologue.models import Photo, Gallery
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -72,6 +72,7 @@ def prepare_one_image(img_io, gallery_title, camera_info, ng=False):
     img_io.seek(0)
     unique_slug = uuid.uuid4().hex
 
+    gallery_title = "-".join(gallery_title.split("_"))
     formatted_time = datetime.now().strftime('%Y%m%d-%H%M%S-%f')[:17]  # 使用微秒的前两位来表示0.01秒
     roi0 = camera_info['roi0']
     roi1 = camera_info['roi1']
