@@ -31,6 +31,9 @@ def get_product(connected_clients: dict):
 
 
 class PLCControlConsumer(AsyncWebsocketConsumer):
+    '''
+    NOTE: "web" is the only client_id of web page.
+    '''
     connected_clients = {}
     camera_clients_list = []
     plc_check_task = None
@@ -44,18 +47,29 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
         await self.accept()
 
     async def disconnect(self, close_code):
-        if self.client_id in self.connected_clients:
-            self.connected_clients.pop(self.client_id)
+        try: 
+            if self.client_id in self.connected_clients:
+                self.connected_clients.pop(self.client_id)
 
-        for _ in self.camera_clients_list:
-            if _[0] == self:
-                self.camera_clients_list.remove(_)
-        # task
-        if len(self.camera_clients_list
-               ) == 0 and self.plc_check_task is not None:
-            PLCControlConsumer.plc_checking = False
-            self.plc_check_task.cancel()
-            await self.plc_check_task
+            for _ in self.camera_clients_list:
+                if _[0] == self:
+                    self.camera_clients_list.remove(_)
+            # task
+            if len(self.camera_clients_list
+                   ) == 0 and self.plc_check_task is not None:
+                PLCControlConsumer.plc_checking = False
+                self.plc_check_task.cancel()
+                await self.plc_check_task
+
+            if len(self.camera_clients_list) == 0 and "web" in self.connected_clients:
+                await self.connected_clients['web'].send(json.dumps({
+                    "status": "connected",
+                    "plc_checking": PLCControlConsumer.plc_checking,
+                    "current_product": PLCControlConsumer.current_product,
+                }))
+                print("stop ok!")
+        except Exception as e:
+            print("disconnect error: ", str(e))
 
     async def receive(self, text_data):
         data = json.loads(text_data)
@@ -147,7 +161,6 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                 img_id = f"#r-{row}-c-{col}"
                 data.update({"img_id": img_id})
                 await client.send(text_data=json.dumps(data))
-                print(f"client:{client}, sending")
             else:
                 print(f"target: {target} not in clients")
 
@@ -192,9 +205,9 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
 
         print("~~~~~~~~~~~~~~~~~~~~ check ~~~~~~~~~~~~~~~~~~~~")
         while PLCControlConsumer.plc_checking:
-            M1_val = plc.get_M("M1")
-            if M1_val:
-                print("m1")
+            success, M1_val = plc.get_M("M1")
+            if success and int(M1_val) > 0:
+                print("m1: ", M1_val)
                 M1_val = 0
                 for _id, client in self.connected_clients.items():
                     if _id == "web":
@@ -205,9 +218,9 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                     except:
                         pass
                 plc.set_M("M1", 0)
-            M4_val = plc.get_M("M4")
-            if M4_val:
-                print("m4")
+            success, M4_val = plc.get_M("M4")
+            if success and int(M4_val) > 0:
+                print("m4: ", M4_val)
                 for _id, client in self.connected_clients.items():
                     if _id == "web":
                         continue
@@ -217,4 +230,4 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                     except:
                         pass
                 plc.set_M("M4", 0)
-            await asyncio.sleep(0.01)
+            await asyncio.sleep(0.02)

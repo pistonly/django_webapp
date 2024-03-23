@@ -68,11 +68,11 @@ def get_random_image(text):
     return buffer
 
 
-def prepare_one_image(img_io, gallery_title, camera_info):
+def prepare_one_image(img_io, gallery_title, camera_info, ng=False):
     img_io.seek(0)
     unique_slug = uuid.uuid4().hex
 
-    formatted_time = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:17]  # 使用微秒的前两位来表示0.01秒
+    formatted_time = datetime.now().strftime('%Y%m%d-%H%M%S-%f')[:17]  # 使用微秒的前两位来表示0.01秒
     roi0 = camera_info['roi0']
     roi1 = camera_info['roi1']
     roi_str = ""
@@ -82,7 +82,7 @@ def prepare_one_image(img_io, gallery_title, camera_info):
         if len(roi_str):
             roi_str += "-"
         roi_str += f"{roi1[0]:04d}{roi1[1]:04d}{roi1[2]:04d}{roi1[3]:04d}"
-    file_title = f"{gallery_title}_{formatted_time}_{roi_str}.jpg"
+    file_title = f"{gallery_title}_{formatted_time}_{roi_str}_{0 if ng else 1}.jpg"
     uploaded_image = InMemoryUploadedFile(
         img_io,
         None,

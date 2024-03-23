@@ -51,11 +51,18 @@ function startWS() {
             console.log(data);
             if (data.status == "duplicated") {
                 alert("其他的网页正在运行");
+                $("body").empty();
+                $("body").append("<h1>页面错误:其他的网页正在运行</h1>");
             } else {
                 if (data.plc_checking) {
+                    $('#background-status').text("运行中...")
+                        .removeClass().addClass("input-group-text bg-info");
+
                     set_current_running(data.current_product);
                     startOrstop(false);
                 } else {
+                    $('#background-status').text("空闲中...")
+                        .removeClass().addClass("input-group-text bg-success");
                     startOrstop(true);
                 }
             }
@@ -63,11 +70,13 @@ function startWS() {
 
         if (data.start_status) {
             if (data.start_status == "success") {
+                $('#background-status').text("运行中...")
+                    .removeClass().addClass("input-group-text bg-info");
                 startOrstop(false);
             } else {
                 setTimeout(()=>{
                     ws_plc.send(JSON.stringify({start: 1}));
-                }, 300);
+                }, 600);
             }
         }
     };
@@ -128,19 +137,24 @@ $(document).ready(function () {
                 $('#production-input').prop("disabled", true);
                 $('#start-camera-background').prop("disabled", true);
                 $('#stop-camera-background').prop("disabled", true);
+                $('#background-status').text("启动中...")
+                    .removeClass().addClass("input-group-text bg-warning");
                 xhr.setRequestHeader("X-CSRFToken", csrftoken);
             },
-            success: function(response) {
+            success: function (response) {
                 console.log("start success");
-                ws_plc.send(JSON.stringify({start: 1}));
+                ws_plc.send(JSON.stringify({ start: 1 }));
             }
         });
     });
 
     $('#stop-camera-background').click(function () {
-        if (ws_plc && ws_plc.readyState === WebSocket.OPEN){
-            ws_plc.send(JSON.stringify({"stop_signal": 1}));
-            startOrstop(true);
+        if (ws_plc && ws_plc.readyState === WebSocket.OPEN) {
+            ws_plc.send(JSON.stringify({ "stop_signal": 1 }));
+            $('#background-status').text("停止中...")
+                .removeClass().addClass("input-group-text bg-warning");
+            $('#production-input').prop("disabled", false);
+            $('#stop-camera-background').prop("disabled", true);
         }
     });
 
