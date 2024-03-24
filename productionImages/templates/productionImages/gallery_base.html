@@ -56,7 +56,7 @@
             <div class="col-md-6 mb-2">
                 <div class="input-group">
                     <span class="input-group-text" id="">合格率:</span>
-                    <input type="text" class="form-control" id="operatorId" placeholder="1">
+                    <input type="text" class="form-control" id="pass-rate" placeholder="1">
                     <span class="input-group-text">PSC</span>
                 </div>
             </div>
@@ -66,7 +66,7 @@
             <div class="col-md-6 mb-2">
                 <div class="input-group">
                     <span class="input-group-text" id="">设备速度:</span>
-                    <input type="text" class="form-control" id="dev-speed" placeholder="100">
+                    <input type="text" class="form-control" id="dev-speed" placeholder="0">
                     <span class="input-group-text">PSC</span>
                 </div>
             </div>
@@ -74,7 +74,7 @@
             <div class="col-md-6 mb-2">
                 <div class="input-group">
                     <span class="input-group-text" id="">生产速度:</span>
-                    <input type="text" class="form-control" id="product-speed" placeholder="100">
+                    <input type="text" class="form-control" id="product-speed" placeholder="0">
                     <span class="input-group-text">PSC</span>
                 </div>
             </div>
@@ -83,8 +83,8 @@
         <div class="row">
             <div class="col-md-6 mb-2">
                 <div class="input-group">
-                    <span class="input-group-text" id="">合格数量:</span>
-                    <input type="text" class="form-control" id="pass-num" placeholder="100">
+                    <span class="input-group-text" >合格数量:</span>
+                    <input type="text" class="form-control" id="pass-num" placeholder="0">
                 </div>
             </div>
             <div class="col-md-6">
@@ -102,6 +102,7 @@
 <div id="start-camera-url" data-url="{% url 'start_camera_background' %}" style="display: none;"></div>
 <div id="stop-camera-url" data-url="{% url 'stop_camera_background' %}" style="display: none;"></div>
 <div id="gallery-url" data-url="{% url 'gallery-photo-upload' %}" style="display: none;"></div>
+<div id="update-noNGrate-url" data-url="{% url 'update_noNGrate' %}" style="display: none;"></div>
 
 {% endblock %}
 
@@ -112,6 +113,7 @@
  const start_camera_url = $("#start-camera-url").data("url");
  const stop_camera_url = $("#stop-camera-url").data("url");
  const gallery_url = $('#gallery-url').data("url");
+ const update_noNGrate_url = $('#update-noNGrate-url').data('url');
 
 </script>
 

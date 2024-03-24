@@ -176,7 +176,9 @@ def photo_upload_to(instance, filename):
     _ind = gallery_title.rfind("-")
     _ind = len(gallery_title) if _ind == -1 else _ind
     product = gallery_title[:_ind]
-    return str(MEDIA_ROOT / "photologue" / product / gallery_title / filename)
+    file_path = str(MEDIA_ROOT / "photologue" / product / gallery_title / filename)
+    return file_path
 
 
 PHOTOLOGUE_PATH = photo_upload_to
+PHOTOLOGUE_IMAGE_FIELD_MAX_LENGTH = 150

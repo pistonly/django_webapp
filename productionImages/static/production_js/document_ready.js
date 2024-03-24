@@ -39,7 +39,7 @@ function startWS() {
         console.error("ws_plc WebSocket error: ", e);
     };
     ws_plc.onmessage = function(e) {
-        // console.log(e);
+        console.log(e);
         const data = JSON.parse(e.data);
         if (data.img_id) {
             update_thumbnail(data);
@@ -79,8 +79,42 @@ function startWS() {
                 }, 600);
             }
         }
+
+        if (data.speed) {
+            $('#dev-speed').val(data.speed);
+            $('#product-speed').val(data.speed);
+        }
+
+        if (data.hasOwnProperty("ng_full")) {
+            console.log(data);
+            $('#pass-num').val(data.noNG_num);
+            $('#pass-rate').val(data.noNG_rate);
+            // update_noNGrate($('#production-input').val(), data.ng);
+        }
     };
 }
+
+function update_noNGrate(product_name, ng) {
+    $.ajax({
+        url: update_noNGrate_url,
+        type: "POST",
+        contentType: 'application/json',
+        data: JSON.stringify({
+            product_name: product_name,
+            ng: ng,
+        }),
+        beforeSend: function (xhr) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        },
+        success: function (data) {
+            console.log("update success");
+            console.log(data);
+            $('#pass-num').val(data.noNG_num);
+            $('#pass-rate').val(data.noNG_rate);
+        }
+    });
+}
+
 function startOrstop(start) {
     if (start) {
         $('#start-camera-background').prop("disabled", false);

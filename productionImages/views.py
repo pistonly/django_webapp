@@ -4,7 +4,7 @@ from camera.camera_process_with_ws_model import run_asyncio_camera_loop
 import random
 from PIL import Image
 import numpy as np
-from .models import ProductBatchV2, create_new_productBatch_v2
+from .models import ProductBatchV2, get_or_create_product
 import time
 import multiprocessing
 from multiprocessing import Process
@@ -24,7 +24,6 @@ from django.core.files.base import ContentFile
 from .serializers import PhotoUploadSerializer
 
 
-
 @login_required
 def production_view(request):
     # get latest production
@@ -38,6 +37,7 @@ stop_event = multiprocessing.Event()
 trigger_process = None
 trigger_process_status = {"runing": None, "batch_num": None}
 
+
 @login_required
 @api_view(['POST'])
 def start_camera_background(request):
@@ -48,30 +48,21 @@ def start_camera_background(request):
     upload_url = request.data.get("upload_url")
 
     # check batch number or create new batch_number
-    try:
-        batch = ProductBatchV2.objects.get(batch_number=batch_number)
-    except:
-        batch = create_new_productBatch_v2(batch_number, user_name)
+    batch = get_or_create_product(batch_number, user_name)
 
     camera_num = batch.camera_num
 
     if trigger_process is None or not trigger_process.is_alive():
         camera_list = get_camera_sn()
         for sn in camera_list:
-            trigger_process = Process(target=run_asyncio_camera_loop, args=(
-                sn,
-                batch_number,
-                ws_uri
-                ))
+            trigger_process = Process(target=run_asyncio_camera_loop,
+                                      args=(sn, batch_number, ws_uri))
             trigger_process.start()
-        # start random camera 
+        # start random camera
         if len(camera_list) < camera_num:
             for _ in range(camera_num - len(camera_list)):
-                trigger_process = Process(target=run_asyncio_camera_loop, args=(
-                    "",
-                    batch_number,
-                    ws_uri
-                    ))
+                trigger_process = Process(target=run_asyncio_camera_loop,
+                                          args=("", batch_number, ws_uri))
                 trigger_process.start()
 
         return Response({"processing is started"})
@@ -106,12 +97,17 @@ def productionImages(request):
             gallery = Gallery.objects.get(title=f"{batch.batch_number}_{i}")
             photo = gallery.photos.latest("date_added")
             if photo:
-                photo_list.append({"url": photo.image.url, "thumbnail": photo.get_display_url(), "title": photo.title})
+                photo_list.append({
+                    "url": photo.image.url,
+                    "thumbnail": photo.get_display_url(),
+                    "title": photo.title
+                })
 
         data = {'batch_number': batch.batch_number, 'urls': photo_list}
         return Response(data)
     except Exception as e:
         return Response({'batch_number': "", "urls": [], 'message': str(e)})
+
 
 @login_required
 @api_view(['POST'])
@@ -125,8 +121,12 @@ def latest_product(request):
             photo = gallery.photos.last()
             if photo is not None:
                 row, col = i % 3, i // 3
-                photo_list.append({"url": photo.image.url, "thumbnail": photo.get_display_url(),
-                                   "title": photo.title, "img_id": f"#r-{row}-c-{col}"})
+                photo_list.append({
+                    "url": photo.image.url,
+                    "thumbnail": photo.get_display_url(),
+                    "title": photo.title,
+                    "img_id": f"#r-{row}-c-{col}"
+                })
 
         data = {'batch_number': batch.batch_number, 'urls': photo_list}
         return Response(data)
@@ -155,29 +155,53 @@ class GalleryImageUploadAPIView(APIView):
             gallery = Gallery.objects.get(title=gallery_title)
             photo = gallery.photos.last()
             if photo is not None:
-                return Response({"url": photo.image.url, "thumbnail": photo.get_display_url(),
-                                 "title": photo.title})
+                return Response({
+                    "url": photo.image.url,
+                    "thumbnail": photo.get_display_url(),
+                    "title": photo.title
+                })
         except Exception as e:
-            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-
-
+            return Response({"message": str(e)},
+                            status=status.HTTP_400_BAD_REQUEST)
 
     def post(self, request, *args, **kwargs):
-        gallery_title = request.data.get('gallery_title') 
+        gallery_title = request.data.get('gallery_title')
         serializer = PhotoUploadSerializer(data=request.data)
-        
+
         if not gallery_title:
-            return Response({"error": "Missing gallery_title"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Missing gallery_title"},
+                            status=status.HTTP_400_BAD_REQUEST)
 
         try:
             gallery = Gallery.objects.get(title=gallery_title)
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": str(e)},
+                            status=status.HTTP_404_NOT_FOUND)
 
         if serializer.is_valid():
             photo = serializer.save()
             gallery.photos.add(photo)  # 将图片添加到指定的Gallery中
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["POST"])
+def update_noNGrate(request):
+    product_name = request.data.get("product_name")
+    ng = request.data.get("ng")
+    ng = False if ng is None else ng
+    try:
+        product = ProductBatchV2.objects.get(batch_number=product_name)
+    except Exception as e:
+        return Response(
+            {"message": f"batch_name: {product_name} error, {str(e)}"},
+            status=status.HTTP_400_BAD_REQUEST)
+
+    product.bottle_num = product.bottle_num + 1
+    if not ng:
+        product.noNG_num += 1
+    product.noNG_rate = product.noNG_num / product.bottle_num
+    product.save()
+    return Response({"noNG_rate": f"{product.noNG_rate:.2f}", "noNG_num": product.noNG_num})
