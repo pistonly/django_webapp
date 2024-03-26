@@ -1,27 +1,34 @@
-from .mindvision.camera_utils import get_devInfo_list, get_one_frame, image_to_numpy, initialize_cam, close_camera, set_camera_parameter, get_camera_parameters, save_image, softTrigger
+from .mindvision.camera_utils import mvCamera, get_devInfo_list, image_to_numpy
 from pathlib import Path
 import json
 import numpy as np
 from PIL import Image
 import io
 
-
-
-
 current_dir = Path(__file__).resolve().parent
 configure_dir = current_dir / 'configure'
 
+
 def get_camera_sn():
     camera_list = get_devInfo_list()
-    camera_sn_list = [camera_info.acSn.decode('utf8') for camera_info in camera_list]
+    camera_sn_list = [
+        camera_info.acSn.decode('utf8') for camera_info in camera_list
+    ]
     return camera_sn_list
 
+
 class cameraManager:
+
     def __init__(self) -> None:
-        self.camera_process = {}
-        self.current_camera = {}
+        self.current_camera = None
         self.camera_sn_list = []
         self.camera_dict = {}
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self):
+        self.close_camera()
 
     def init_camera_configure(self, sn):
         camera_config_dir = configure_dir / sn
@@ -30,9 +37,14 @@ class cameraManager:
         for i in range(4):
             config_f = camera_config_dir / f"configure_配置{i}.json"
             if not config_f.is_file():
-                json.dump({"configure_name": config_f.stem}, open(str(config_f), "w"))
+                json.dump({"configure_name": config_f.stem},
+                          open(str(config_f), "w"))
 
-        configures = [self.configure_name_to_show(f.stem) for f in camera_config_dir.iterdir() if f.with_suffix(".json") and f.stem.startswith("configure_")]
+        configures = [
+            self.configure_name_to_show(f.stem)
+            for f in camera_config_dir.iterdir()
+            if f.with_suffix(".json") and f.stem.startswith("configure_")
+        ]
         configures.sort()
         # default config
         success, default_configure = self.get_camera_info()
@@ -48,30 +60,26 @@ class cameraManager:
             # default is configure_000
             configure_name = "configure_配置0"
 
-        self.current_camera.update({"configure_f": configures, 'default_config': default_configure,
-                                    "configure_name": configure_name})
+        self.current_camera.set_configure_file(configures, default_configure,
+                                               configure_name)
 
     def reset_configure(self, config_f):
         sn = self.current_camera.get('sn')
         if sn is None:
             return False, "please update camera list"
 
-        success, _ = self.save_configure(config_f, self.current_camera['default_config'])
+        success, _ = self.save_configure(config_f,
+                                         self.current_camera.default_config)
         if success:
             return True, "reset OK"
         else:
             return False, "reset failed"
 
     def _start_camera(self, sn):
-        self.current_camera = {"sn": sn}
         # start
         camera_info = self.camera_dict.get(sn)
         if camera_info:
-            name = camera_info.acFriendlyName.decode('utf8')
-            camera_res = initialize_cam(camera_info)
-            self.current_camera.update(dict(zip(["handle", "cap", "mono", "bs", "pb"],
-                                                camera_res)))
-            self.current_camera.update({'name': name})
+            self.current_camera = mvCamera(camera_info)
             print(f"camera: {sn} start success!")
             return
         else:
@@ -81,10 +89,10 @@ class cameraManager:
         self.update_camera_list(start_default=False)
         if sn not in self.camera_dict:
             return False, f"{sn} is not right sn"
-        if self.current_camera.get("sn") is None:
+        if self.current_camera is None:
             self._start_camera(sn)
-        elif self.current_camera["sn"] != sn:
-            self.close_camera()
+        elif self.current_camera.sn != sn:
+            self.current_camera.close_camera()
             self._start_camera(sn)
         else:
             print(f"camera: {sn} started!")
@@ -93,12 +101,11 @@ class cameraManager:
         self.init_camera_configure(sn)
         return True, f"{sn} started"
 
-    def save_configure(self, config_f: str, config_dict = None):
+    def save_configure(self, config_f: str, config_dict=None):
         '''
         configure file start with "configure_"
         '''
-        sn = self.current_camera.get('sn')
-        if sn is None:
+        if self.current_camera is None:
             return False, "please update camera list"
 
         if not config_f.startswith("configure_"):
@@ -106,7 +113,7 @@ class cameraManager:
         if not config_f.endswith(".json"):
             config_f = f"{config_f}.json"
 
-        config_f_path = configure_dir / sn / config_f
+        config_f_path = configure_dir / self.current_camera.sn / config_f
         if config_dict is None:
             success, config_dict = self.get_camera_info()
             config_dict.update({'configure_name': config_f_path.stem})
@@ -122,8 +129,7 @@ class cameraManager:
             return success, "save configure failed"
 
     def load_configure(self, config_f: str):
-        sn = self.current_camera.get('sn')
-        if sn is None:
+        if self.current_camera is None:
             return False, "please update camera list"
 
         if not config_f.startswith("configure_"):
@@ -131,7 +137,7 @@ class cameraManager:
         if not config_f.endswith(".json"):
             config_f = f"{config_f}.json"
 
-        config_f_path = configure_dir / sn / config_f
+        config_f_path = configure_dir / self.current_camera.sn / config_f
         if config_f_path.is_file():
             config_dict = json.load(open(str(config_f_path), "r"))
             success, message = self.set_camera(config_dict)
@@ -145,22 +151,25 @@ class cameraManager:
 
     def update_camera_list(self, start_default=True):
         camera_list = get_devInfo_list()
-        self.camera_dict = {camera_info.acSn.decode('utf8'): camera_info for camera_info in camera_list}
+        self.camera_dict = {
+            camera_info.acSn.decode('utf8'): camera_info
+            for camera_info in camera_list
+        }
         self.camera_sn_list = list(self.camera_dict.keys())
         # set default camera
         if start_default and len(self.camera_sn_list):
             self.start_camera(self.camera_sn_list[0])
 
     def close_camera(self):
-        if self.current_camera.get("sn") is not None:
-            close_camera(self.current_camera['handle'], self.current_camera['pb'])
-            print(f"{self.current_camera['sn']} closed")
-            self.current_camera = {}
+        if self.current_camera is not None:
+            self.current_camera.close_camera()
+            print(f"{self.current_camera.sn} closed")
+            self.current_camera = None
 
     def get_one_frame(self):
-        if self.current_camera.get('sn') is None:
+        if self.current_camera is None:
             return False, "please update camera list"
-        pb, FH = get_one_frame(self.current_camera['handle'], self.current_camera['pb'])
+        pb, FH = self.current_camera.get_one_frame()
         frame = image_to_numpy(pb, FH)
         frame = frame[:, :, 0] if frame.shape[-1] == 1 else frame
         frame = Image.fromarray(frame.astype(np.uint8))
@@ -169,22 +178,22 @@ class cameraManager:
         return True, buffer
 
     def grab(self, path: str, quality=100):
-        if self.current_camera.get('sn') is None:
+        if self.current_camera is None:
             return False, "please update camera list"
-        PB, FH = get_one_frame(self.current_camera['handle'], self.current_camera['pb'])
-        save_image(self.current_camera['handle'], PB, FH, path, quality, img_type='bmp')
+        PB, FH = self.current_camera.get_one_frame()
+        self.current_camera.save_image(FH, path, quality)
         return True, True
 
     def soft_trigger(self, sn=None):
-        if sn is not None:
-            if sn != self.current_camera.get('sn'):
-                self.start_camera(sn)
-        if self.current_camera.get('sn') is None:
+        if self.current_camera is None:
             return False, "please update camera list"
-        camera = self.current_camera
-        error_code = softTrigger(camera['handle'])
+
+        if sn is not None and sn != self.current_camera.sn:
+            self.start_camera(sn)
+
+        self.current_camera.softTrigger()
         # get one frame
-        pb, FH = get_one_frame(camera['handle'], camera['pb'])
+        pb, FH = self.current_camera.get_one_frame()
         frame = image_to_numpy(pb, FH)
         frame = frame[:, :, 0] if frame.shape[-1] == 1 else frame
         frame = Image.fromarray(frame.astype(np.uint8))
@@ -202,22 +211,28 @@ class cameraManager:
         return configure_name
 
     def get_camera_info(self):
-        camera = self.current_camera
         try:
-            camera_info = get_camera_parameters(camera['handle'], camera['cap'])
-            camera_info.update({"configure_f": camera.get("configure_f"),
-                                "configure_name": camera.get("configure_name")})
-            if camera.get("configure_name"):
-                camera_info.update({"configure_name_alias": self.configure_name_to_show(camera.get("configure_name"))})
+            if self.current_camera is not None:
+                camera_info = self.current_camera.get_camera_parameters()
+                camera_info.update({
+                    "configure_f":
+                    self.current_camera.configure_f,
+                    "configure_name":
+                    self.current_camera.configure_name
+                })
+                if self.current_camera.configure_name:
+                    camera_info.update({
+                        "configure_name_alias":
+                        self.configure_name_to_show(
+                            self.current_camera.configure_name)
+                    })
             return True, camera_info
         except Exception as e:
             return False, str(e)
 
     def set_camera(self, parameters: dict):
-        camera = self.current_camera
-        if camera.get("sn") is None:
+        if self.current_camera.sn is None:
             return False, "please update camera list"
-        print(parameters)
-        set_camera_parameter(camera['handle'], **parameters)
+        self.current_camera.set_camera_parameter(**parameters)
         camera_info = self.get_camera_info()
         return True, camera_info

@@ -24,6 +24,7 @@ camera_set_functions = {
     if callable(getattr(mvsdk, func)) and func.startswith("CameraSet")
 }
 
+
 def get_devInfo_list() -> list:
     return mvsdk.CameraEnumerateDevice()
 
@@ -39,23 +40,38 @@ def image_to_numpy(pFrameBuffer, FrameHead):
 
 class mvCamera:
 
-    def __init__(self, DevInfo: mvsdk.tSdkCameraDevInfo, name: str = default_name) -> None:
+    def __init__(self,
+                 DevInfo: mvsdk.tSdkCameraDevInfo,
+                 name: str = default_name) -> None:
         self.name = name
+        # name = camera_info.acFriendlyName.decode('utf8')
         self.roi0, self.roi1 = roi0, roi1
         self.roi0_disabled, self.roi1_disabled = 1, 1
         self.hCamera = hCamera = mvsdk.CameraInit(DevInfo, -1, -1)
         self.cap = cap = mvsdk.CameraGetCapability(hCamera)
-        selected_parameters = ["ImageResolution", "TriggerMode", "Sharpness", "Mirror",
-                               "Sharpness", "Gamma", "Contrast", "FrameSpeed",
-                               "AeTarge", "TriggerDelayTime", "TriggerCount", "AeState",
-                               "AnalogGain", "ExposureTime"]
+        self.sn = DevInfo.acSn.decode("utf8")
+        # configure 
+        self.configure_f = None
+        self.default_config = {}
+        self.configure_name = None
+        selected_parameters = [
+            "ImageResolution", "TriggerMode", "Sharpness", "Mirror",
+            "Sharpness", "Gamma", "Contrast", "FrameSpeed", "AeTarget",
+            "TriggerDelayTime", "TriggerCount", "AeState", "AnalogGain",
+            "ExposureTime"
+        ]
         self.selected_parameters = [p.lower() for p in selected_parameters]
 
-        selected_parameters = ["TriggerMode", "Sharpness", "hMirror", "vMirror",
-                           "Sharpness", "Gamma", "Contrast", "FrameSpeed",
-                           "AeTarge", "TriggerDelayTime", "TriggerCount", "AeState",
-                           "AnalogGain", "ExposureTime", "antiFlick"]
-        self.selected_parameters_for_set = [p.lower() for p in selected_parameters]
+        selected_parameters = [
+            "TriggerMode", "Sharpness", "hMirror", "vMirror", "Sharpness",
+            "Gamma", "Contrast", "FrameSpeed", "AeTarget", "TriggerDelayTime",
+            "TriggerCount", "AeState", "AnalogGain", "ExposureTime",
+            "antiFlick"
+        ]
+        self.selected_parameters_for_set = [
+            p.lower() for p in selected_parameters
+        ]
+
         self.monoCamera = monoCamera = (cap.sIspCapacity.bMonoSensor != 0)
         # 黑白相机让ISP直接输出MONO数据，而不是扩展成R=G=B的24位灰度
         if monoCamera:
@@ -87,6 +103,11 @@ class mvCamera:
         # 清理资源，例如关闭相机和释放内存
         self.close_camera()
 
+    def set_configure_file(self, configure_f, default_config, configure_name):
+        self.configure_f = configure_f
+        self.default_config = default_config
+        self.configure_name = configure_name
+
     def get_one_frame(self):
         try:
             pRawData, FrameHead = mvsdk.CameraGetImageBuffer(
@@ -101,27 +122,24 @@ class mvCamera:
     def softTrigger(self):
         return mvsdk.CameraSoftTrigger(self.hCamera)
 
-    def save_image(self,
-                   FrameHead,
-                   path,
-                   quality=100,
-                   img_type='bmp'):
-        status = mvsdk.CameraSaveImage(self.hCamera, path, self.pFrameBuffer, FrameHead,
-                                       imgType_dict[img_type], quality)
+    def save_image(self, FrameHead, path, quality=100, img_type='bmp'):
+        status = mvsdk.CameraSaveImage(self.hCamera, path, self.pFrameBuffer,
+                                       FrameHead, imgType_dict[img_type],
+                                       quality)
         if status == mvsdk.CAMERA_STATUS_SUCCESS:
             return True
         else:
             return False
-
 
     def close_camera(self):
         # 关闭相机
         mvsdk.CameraUnInit(self.hCamera)
         # 释放帧缓存
         mvsdk.CameraAlignFree(self.pFrameBuffer)
-        print(f"-------------------- camera:{self.name} closed--------------------")
+        print(
+            f"-------------------- camera:{self.name} closed--------------------"
+        )
         return
-
 
     def get_camera_parameters(self):
         # antiflick: 0: false, 1: true
@@ -154,8 +172,7 @@ class mvCamera:
                 v = {"hMirror": hMirror, "vMirror": vMirror}
             elif k == "imageresolution":
                 v = camera_get_functions[k](hCamera)
-                v = {"w": v.iWidth,
-                     "h": v.iHeight}
+                v = {"w": v.iWidth, "h": v.iHeight}
             else:
                 v = camera_get_functions[k](hCamera)
 
@@ -169,12 +186,11 @@ class mvCamera:
                         cap.sExposeDesc.uiExposeTimeMax)
         parameters.update({"expose_range": expose_range})
         gamma_range = (cap.sGammaRange.iMin, cap.sGammaRange.iMax)
-        parameters.update({"lut_gamma_range": gamma_range})
+        parameters.update({"gamma_range": gamma_range})
         contrast_range = (cap.sContrastRange.iMin, cap.sContrastRange.iMax)
-        parameters.update({"lut_contrast_range": contrast_range})
+        parameters.update({"contrast_range": contrast_range})
 
         return parameters
-
 
     def set_camera_parameter(self, **kwargs):
         hCamera = self.hCamera
@@ -272,9 +288,8 @@ if __name__ == "__main__":
             parameters = camera.get_camera_parameters()
             print(parameters)
 
-            param = {"trigger_mode": 1, "triggerDelayTime": 20, "ae_state": 1}
+            param = {"triggerMode": 1, "triggerDelayTime": 20, "aeState": 1}
             camera.set_camera_parameter(**param)
 
             parameters = camera.get_camera_parameters()
             print(parameters)
-
