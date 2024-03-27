@@ -64,8 +64,7 @@ class cameraManager:
                                                configure_name)
 
     def reset_configure(self, config_f):
-        sn = self.current_camera.get('sn')
-        if sn is None:
+        if self.current_camera is None:
             return False, "please update camera list"
 
         success, _ = self.save_configure(config_f,
@@ -166,7 +165,13 @@ class cameraManager:
             print(f"{self.current_camera.sn} closed")
             self.current_camera = None
 
-    def get_one_frame(self):
+    def get_one_frame(self, soft_trigger=None):
+        if soft_trigger is None:
+            soft_trigger = (self.current_camera.trigger_mode() == 1)
+
+        if soft_trigger:
+            return self.soft_trigger()
+
         if self.current_camera is None:
             return False, "please update camera list"
         pb, FH = self.current_camera.get_one_frame()
@@ -230,8 +235,18 @@ class cameraManager:
         except Exception as e:
             return False, str(e)
 
+    def get_camera_roi(self):
+        if self.current_camera is None:
+            roi0, roi1 = [], []
+            roi0_disabled, roi1_disabled = True, True
+        else:
+            roi0, roi1 = self.current_camera.roi0, self.current_camera.roi1
+            roi0_disabled = self.current_camera.roi0_disabled
+            roi1_disabled = self.current_camera.roi1_disabled
+        return roi0, roi1, roi0_disabled, roi1_disabled
+
     def set_camera(self, parameters: dict):
-        if self.current_camera.sn is None:
+        if self.current_camera is None:
             return False, "please update camera list"
         self.current_camera.set_camera_parameter(**parameters)
         camera_info = self.get_camera_info()

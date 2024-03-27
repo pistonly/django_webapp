@@ -4,10 +4,10 @@ import io
 from PIL import Image, ImageDraw, ImageFont
 import uuid
 from datetime import datetime
-from .mindvision.camera_utils import get_devInfo_list, get_one_frame, image_to_numpy, initialize_cam, close_camera, set_camera_parameter, get_camera_parameters, save_image, softTrigger
+from .mindvision.camera_utils import get_devInfo_list, image_to_numpy
+from camera_manager import cameraManager
 from websockets.exceptions import ConnectionClosed
 import numpy as np
-import aiohttp
 import json
 from pathlib import Path
 import django
@@ -30,19 +30,6 @@ logging.basicConfig(level=logging.INFO,
 
 current_dir = Path(__file__).resolve().parent
 configure_dir = current_dir / 'configure'
-
-
-def get_one_image(camera):
-    # softTrigger
-    error_code = softTrigger(camera['handle'])
-    # get one frame
-    pb, FH = get_one_frame(camera['handle'], camera['pb'])
-    frame = image_to_numpy(pb, FH)
-    frame = frame[:, :, 0] if frame.shape[-1] == 1 else frame
-    frame = Image.fromarray(frame.astype(np.uint8))
-    buffer = io.BytesIO()
-    frame.save(buffer, format='JPEG')
-    return buffer
 
 
 def get_random_image(text):
@@ -106,13 +93,16 @@ def get_AI_results(img_io):
     return ng
 
 
-def capture_and_upload(camera, gallery_title):
-    if camera['handle'] is None:
+def capture_and_upload(camera_manager: cameraManager, gallery_title):
+    if camera_manager.current_camera is None:
         img_io = get_random_image(gallery_title)
     else:
-        img_io = get_one_image(camera)
+        img_io = camera_manager.get_one_frame()
     ng = get_AI_results(img_io)
-    data = prepare_one_image(img_io, gallery_title, camera['camera_info'], ng)
+    camera_roi_info = camera_manager.get_camera_roi()
+    camera_roi_info = dict(zip(['roi0', 'roi1', 'roi0_disabled', 'roi1_disabled'],
+                               camera_roi_info))
+    data = prepare_one_image(img_io, gallery_title, camera_roi_info, ng)
     # logging.info(f"{gallery_title}: get one immage")
     gallery = Gallery.objects.get(title=gallery_title)
     photo = Photo(**data)
@@ -134,11 +124,11 @@ async def capture_and_upload_async(camera, gallery_title):
     return img_info
 
 
-async def websocket_client(camera, gallery_title, uri):
+async def websocket_client(camera_manager, gallery_title, uri):
     try:
         async with websockets.connect(uri) as websocket:
             # send id
-            if camera['handle'] is None:
+            if camera_manager.current_camera is None:
                 message = {"client_id": gallery_title, "update": 1}
             else:
                 message = {"client_id": gallery_title}
@@ -167,7 +157,7 @@ async def websocket_client(camera, gallery_title, uri):
                     # logging.info("Capturing and uploading image.")
                     loop = asyncio.get_running_loop()
                     img_info = await loop.run_in_executor(
-                        None, capture_and_upload, camera, gallery_title)
+                        None, capture_and_upload, camera_manager, gallery_title)
 
                     img_info.update({
                         "target": "web",
@@ -182,58 +172,25 @@ async def websocket_client(camera, gallery_title, uri):
         logging.info(f"An unexpected error: {e}")
 
 
-async def main(camera: dict, gallery_title: str, ws_uri: str):
-    await websocket_client(camera, gallery_title, ws_uri)
+async def main(camera_manager: cameraManager, gallery_title: str, ws_uri: str):
+    await websocket_client(camera_manager, gallery_title, ws_uri)
 
 
 def run_asyncio_camera_loop(camera_sn: str, batch_number: str, ws_uri: str):
     # start camera, and load configure
-    camera = {}
-    if len(camera_sn) == 0:
-        camera = {
-            "handle": None,
-            'camera_info': {
-                "roi0": [],
-                "roi1": [],
-                "roi0_disabled": True,
-                "roi1_disabled": True
-            }
-        }
-        gallery_title = batch_number
-        asyncio.run(main(camera, gallery_title, ws_uri))
-        logging.info(
-            "============================process close ======================")
+    try:
+        camera_manager = cameraManager()
+        camera_manager.start_camera(camera_sn)
+        camera_name = camera_manager.current_camera.name
+        camera_ord = int(camera_name.split("_")[-1])
+        camera_ord = 0 if (camera_ord > 18
+                           or camera_ord < 0) else camera_ord
+        gallery_title = f"{batch_number}_{camera_ord}"
 
-    else:
+        asyncio.run(main(camera_manager, gallery_title, ws_uri))
+    except Exception as e:
+        logging.info(f"camera process error: {str(e)}")
 
-        try:
-            camera_list = get_devInfo_list()
-            for camera_info in camera_list:
-                if camera_info.acSn.decode('utf8') == camera_sn:
-                    camera_res = initialize_cam(camera_info)
-                    camera = dict(
-                        zip(["handle", "cap", "mono", "bs", "pb"], camera_res))
-                    break
-            # load default configure
-            configure_file = configure_dir / camera_sn / "setted_configure.json"
-            if configure_file.is_file():
-                config_dict = json.load(open(str(configure_file), "r"))
-                set_camera_parameter(camera['handle'], **config_dict)
-            camera_info = get_camera_parameters(camera['handle'],
-                                                camera['cap'])
-            camera.update({'camera_info': camera_info})
-
-            camera_name = camera['camera_info']['name']
-            camera_ord = int(camera_name.split("_")[-1])
-            camera_ord = 0 if (camera_ord > 18
-                               or camera_ord < 0) else camera_ord
-            gallery_title = f"{batch_number}_{camera_ord}"
-
-            asyncio.run(main(camera, gallery_title, ws_uri))
-        except Exception as e:
-            logging.info(f"camera process error: {str(e)}")
-
-        finally:
-            logging.info("==================process quit=====================")
-            if camera['handle'] is not None:
-                close_camera(camera['handle'], camera['pb'])
+    finally:
+        logging.info("==================process quit=====================")
+        camera_manager.close_camera()

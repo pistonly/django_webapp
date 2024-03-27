@@ -141,6 +141,9 @@ class mvCamera:
         )
         return
 
+    def trigger_mode(self):
+        return mvsdk.CameraGetTriggerMode(self.hCamera)
+
     def get_camera_parameters(self):
         # antiflick: 0: false, 1: true
         # lightFrequency: 0: 50HZ, 1: 60HZ
