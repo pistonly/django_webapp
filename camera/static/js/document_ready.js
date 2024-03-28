@@ -32,7 +32,7 @@ $(document).ready(function() {
             "set_camera": 1,
             "sn": $('#select_camera').val(),
             "params": {
-                "ae_state": exposureMode
+                "aeState": exposureMode
             }
         }));
     });
@@ -54,7 +54,7 @@ $(document).ready(function() {
             "set_camera": 1,
             "sn": $('#select_camera').val(),
             "params": {
-                ae_target: $('#ae_target').val(),
+                aeTarget: $('#ae_target').val(),
             }
         }));
     });
@@ -123,7 +123,7 @@ $(document).ready(function() {
             "set_camera": 1,
             "sn": $('#select_camera').val(),
             "params": {
-                lut_gamma: $(this).val(),
+                gamma: $(this).val(),
             }
         }));
     });
@@ -138,7 +138,7 @@ $(document).ready(function() {
             "set_camera": 1,
             "sn": $('#select_camera').val(),
             "params": {
-                lut_contrast: $(this).val(),
+                contrast: $(this).val(),
             }
         }));
     });

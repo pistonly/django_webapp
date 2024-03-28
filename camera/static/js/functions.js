@@ -18,35 +18,34 @@ function updateCameraList(cameras) {
 }
 
 function updateSettingPan(data) {
-    console.log(data);
     // Update camera-name
     $('#camera-name-sel').val(data.name);
 
     // Update trigger mode radios
-    $('input[name="trigger"][value="' + data.triggerMode + '"]').prop('checked', true);
-    trigger_mode = data.triggerMode;
-    $('#triggerDelayTime').val(data.triggerDelayTime);
-    $('#triggerCount').val(data.triggerCount);
+    $('input[name="trigger"][value="' + data.triggermode + '"]').prop('checked', true);
+    trigger_mode = data.triggermode;
+    $('#triggerDelayTime').val(data.triggerdelaytime);
+    $('#triggerCount').val(data.triggercount);
     /* $('input[name="trigger"][value="' + data.triggerMode + '"]').trigger('change'); */
 
     // Update ae_state time
-    $('input[name="ae_state"][value="' + data.ae_state + '"]').prop('checked', true);
-    $('#manualExposureTime').val(data.expose_time);
+    $('input[name="ae_state"][value="' + data.aestate + '"]').prop('checked', true);
+    $('#manualExposureTime').val(data.exposuretime);
     $('#ae_target').attr('min', data.ae_target_range[0])
         .attr('max', data.ae_target_range[1])
-        .val(data.ae_target);
-    $('input[name="ae_state"][value="' + data.ae_state + '"]').trigger('change');
+        .val(data.aetarget);
+    $('input[name="ae_state"][value="' + data.aestate + '"]').trigger('change');
 
     // Update gamma and contrast values and ranges
-    $('#gamma-value').text(data.lut_gamma);
-    $('#gamma-range').attr('min', data.lut_gamma_range[0])
-        .attr('max', data.lut_gamma_range[1])
-        .val(data.lut_gamma);
+    $('#gamma-value').text(data.gamma);
+    $('#gamma-range').attr('min', data.gamma_range[0])
+        .attr('max', data.gamma_range[1])
+        .val(data.gamma);
 
-    $('#contrast-value').text(data.lut_contrast);
-    $('#contrast-range').attr('min', data.lut_contrast_range[0])
-        .attr('max', data.lut_contrast_range[1])
-        .val(data.lut_contrast);
+    $('#contrast-value').text(data.contrast);
+    $('#contrast-range').attr('min', data.contrast_range[0])
+        .attr('max', data.contrast_range[1])
+        .val(data.contrast);
 
     // roi
     $('#roi-x0-0').val(data.roi0[0]);

@@ -30,6 +30,12 @@ class cameraManager:
     def __exit__(self):
         self.close_camera()
 
+    def get_sn(self):
+        if self.current_camera is None:
+            return None
+        else:
+            return self.current_camera.sn
+
     def init_camera_configure(self, sn):
         camera_config_dir = configure_dir / sn
         camera_config_dir.mkdir(parents=True, exist_ok=True)

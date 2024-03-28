@@ -5,7 +5,7 @@ from PIL import Image, ImageDraw, ImageFont
 import uuid
 from datetime import datetime
 from .mindvision.camera_utils import get_devInfo_list, image_to_numpy
-from camera_manager import cameraManager
+from .camera_manager import cameraManager
 from websockets.exceptions import ConnectionClosed
 import numpy as np
 import json

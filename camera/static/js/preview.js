@@ -15,6 +15,7 @@ function startWS() {
 
     ws.onmessage = function(e) {
         var data = JSON.parse(e.data);
+        console.log(data);
         if (data.hasOwnProperty("message")) {
             console.log(data.message);
         }

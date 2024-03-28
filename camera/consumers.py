@@ -64,7 +64,7 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
             self.product_show_task = None
 
     def check_sn(self, camera_sn):
-        current_sn = self.camera_manager.current_camera.get("sn")
+        current_sn = self.camera_manager.get_sn()
         success, message = True, "success"
         if current_sn != camera_sn:
             success, message = self.camera_manager.start_camera(camera_sn)
@@ -197,7 +197,7 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
                 print("plc trigger task")
                 self.plc_trigger_task = asyncio.create_task(self.check_plc_trigger(camera_sn))
             return 
-            
+
         if "start_preview" in text_data_json and trigger_mode == 0:
             if self.camera_feed_task is None:
                 self.preview = True
@@ -225,7 +225,7 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
     async def camera_feed(self, sn):
         try:
             frame_num = 0
-            if sn != self.camera_manager.current_camera.get("sn"):
+            if sn != self.camera_manager.get_sn():
                 success, message = self.camera_manager.start_camera(sn)
                 if not success:
                     print(message)
