@@ -246,9 +246,7 @@ class cameraManager:
             roi0, roi1 = [], []
             roi0_disabled, roi1_disabled = True, True
         else:
-            roi0, roi1 = self.current_camera.roi0, self.current_camera.roi1
-            roi0_disabled = self.current_camera.roi0_disabled
-            roi1_disabled = self.current_camera.roi1_disabled
+            roi0, roi1, roi0_disabled, roi1_disabled = self.current_camera.get_camera_roi()
         return roi0, roi1, roi0_disabled, roi1_disabled
 
     def set_camera(self, parameters: dict):

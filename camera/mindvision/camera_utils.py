@@ -144,7 +144,11 @@ class mvCamera:
     def trigger_mode(self):
         return mvsdk.CameraGetTriggerMode(self.hCamera)
 
+    def get_camera_roi(self):
+        return self.roi0, self.roi1, self.roi0_disabled, self.roi1_disabled
+
     def get_camera_parameters(self):
+        """
         # antiflick: 0: false, 1: true
         # lightFrequency: 0: 50HZ, 1: 60HZ
         # AnalogGain: default: 10
@@ -157,16 +161,14 @@ class mvCamera:
         # triggerDelayTiem: unit: us
         # ae: 0: false, 1: true
 
+        """
+
         hCamera, cap = self.hCamera, self.cap
         parameters = {}
         # get roi & name
-        parameters.update({
-            "roi0": self.roi0,
-            "roi1": self.roi1,
-            'roi0_disabled': self.roi0_disabled,
-            'roi1_disabled': self.roi1_disabled,
-            'name': self.name
-        })
+        parameters.update(dict(zip(['roi0', 'roi1', 'roi0_disabled', 'roi1_disabled'],
+                                   self.get_camera_roi())))
+        parameters['name'] = self.name
 
         for k in self.selected_parameters:
             if k == "mirror":
@@ -195,12 +197,7 @@ class mvCamera:
 
         return parameters
 
-    def set_camera_parameter(self, **kwargs):
-        hCamera = self.hCamera
-        # print(kwargs)
-        if "name" in kwargs:
-            self.name = kwargs['name']
-
+    def set_camera_roi(self, **kwargs):
         if "roi0" in kwargs:
             self.roi0 = [int(v) for v in kwargs['roi0']]
 
@@ -213,6 +210,14 @@ class mvCamera:
         if "roi1_disabled" in kwargs:
             self.roi1_disabled = int(kwargs['roi1_disabled'])
 
+
+    def set_camera_parameter(self, **kwargs):
+        hCamera = self.hCamera
+        # print(kwargs)
+        if "name" in kwargs:
+            self.name = kwargs['name']
+
+        self.set_camera_roi(**kwargs)
         # # set resolution
         # if "resolution" in kwargs:
         #     resolution = mvsdk.tSdkImageResolution()
