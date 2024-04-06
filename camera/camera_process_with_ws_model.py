@@ -181,11 +181,16 @@ def run_asyncio_camera_loop(camera_sn: str, batch_number: str, ws_uri: str):
     try:
         camera_manager = cameraManager()
         camera_manager.start_camera(camera_sn)
-        camera_name = camera_manager.current_camera.name
-        camera_ord = int(camera_name.split("_")[-1])
-        camera_ord = 0 if (camera_ord > 18
-                           or camera_ord < 0) else camera_ord
-        gallery_title = f"{batch_number}_{camera_ord}"
+        if camera_manager.current_camera is not None:
+            camera_name = camera_manager.current_camera.name
+            camera_ord = int(camera_name.split("_")[-1])
+            if camera_ord > 18 or camera_ord < 0:
+                logging.info("camera ord should in range(0, 18)")
+                camera_ord = 0
+                gallery_title = f"{batch_number}_{camera_ord}"
+        else: 
+            # ws server generate camera_ord
+            gallery_title = batch_number
 
         asyncio.run(main(camera_manager, gallery_title, ws_uri))
     except Exception as e:
