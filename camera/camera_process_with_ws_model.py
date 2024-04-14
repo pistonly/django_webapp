@@ -97,7 +97,11 @@ def capture_and_upload(camera_manager: cameraManager, gallery_title):
     if camera_manager.current_camera is None:
         img_io = get_random_image(gallery_title)
     else:
-        img_io = camera_manager.get_one_frame()
+        success, img_io = camera_manager.get_one_frame()
+        if not success:
+            print("***************************************")
+            img_io = get_random_image(gallery_title)
+            print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
     ng = get_AI_results(img_io)
     camera_roi_info = camera_manager.get_camera_roi()
     camera_roi_info = dict(zip(['roi0', 'roi1', 'roi0_disabled', 'roi1_disabled'],
@@ -146,7 +150,7 @@ async def websocket_client(camera_manager, gallery_title, uri):
 
             while True:
                 message = await websocket.recv()
-                logging.info(f"< {message}")
+                logging.info(f"{gallery_title}:< {message}")
                 message = json.loads(message)
 
                 if "stop" in message:
@@ -187,7 +191,7 @@ def run_asyncio_camera_loop(camera_sn: str, batch_number: str, ws_uri: str):
             if camera_ord > 18 or camera_ord < 0:
                 logging.info("camera ord should in range(0, 18)")
                 camera_ord = 0
-                gallery_title = f"{batch_number}_{camera_ord}"
+            gallery_title = f"{batch_number}_{camera_ord}"
         else: 
             # ws server generate camera_ord
             gallery_title = batch_number

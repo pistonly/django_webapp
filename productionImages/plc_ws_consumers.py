@@ -116,6 +116,7 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                 async with self._lock:
                     self.camera_clients_list.append(
                         [self, client_id, data.get('update')])
+                    # when all camera-client in camera_clients_list
                     if len(self.camera_clients_list) >= self.camera_num:
                         [
                             await
