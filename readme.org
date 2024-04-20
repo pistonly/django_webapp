@@ -30,3 +30,16 @@
   net start MySQL80
 #+end_src
 
+** mysql configure file
+create mysql configure file at path: project_path/mysql.cnf, with context:
+#+begin_src ini
+[client]
+database = your_database_name
+user = your_database_user
+password = your_database_password
+host = localhost
+port = 3306
+default-character-set = utf8mb4
+#+end_src
+
+
