@@ -1,8 +1,7 @@
 
 * requirements
-- django==3.2
   #+begin_src bash
-    pip install django==3.2
+    pip install -r requirements.txt
   #+end_src
 
 * startup
@@ -10,22 +9,46 @@
   cd django_webapp
   # install package
   python -m pip install -r requirements.txt
+#+end_src
+** 如果没有安装MySQL
+请看[[*install mysql on windows][install mysql on windows]]
+** 如果没有管理员账户
+使用下面命令创建管理员账户
+#+begin_src bash
+  python manage.py createsuperuser
+#+end_src
+** 启动django服务
+#+begin_src bash
   # start server
   python manage.py runserver
 #+end_src
 
-* django commands
-
-** add new app
-#+begin_src bash
-  python manage.py startapp app-name
-#+end_src
-
-
-
 * mysql
 
+** install mysql on windows
+
+在Windows系统下安装MySQL的步骤通常包括以下几个阶段：
+1. 下载MySQL安装包
+   访问MySQL官网：MySQL Downloads
+   选择“MySQL Community Server”作为免费的开源版本。
+   在下载页面选择适用于Windows的版本，通常是一个.msi安装文件。
+2. 运行安装程序
+   双击下载的.msi文件开始安装。
+   选择“Full”安装以安装所有组件，包括服务器、Shell、Workbench等，或者根据需要选择“Custom”进行自定义安装。
+3. 配置MySQL服务器
+   - 安装过程中，安装向导会引导你进行服务器的配置，包括：
+     * 配置网络设置，如端口号（默认是3306）。
+     * 设置MySQL的root用户密码。(注意记住密码，等会在mysql.cnf中需要使用）
+     * 选择是否作为Windows服务运行，以及服务的启动类型。
+4. 完成安装
+   - 继续点击“Next”直到完成安装，最后点击“Finish”。
+
+** 创建django使用的数据库
+- 打开 mysql command line client， 并输入root密码
+- 输入 create database djangoDB
+
 ** start server @windows
+如果提示mysql服务没有启动。使用下面命令启动mysql服务
 #+begin_src bash
   net start MySQL80
 #+end_src
@@ -34,8 +57,8 @@
 create mysql configure file at path: project_path/mysql.cnf, with context:
 #+begin_src ini
 [client]
-database = your_database_name
-user = your_database_user
+database = djangoDB
+user = root
 password = your_database_password
 host = localhost
 port = 3306
