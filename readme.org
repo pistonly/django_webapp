@@ -11,7 +11,7 @@
   python -m pip install -r requirements.txt
 #+end_src
 ** 如果没有安装MySQL
-请看[[*install mysql on windows][install mysql on windows]]
+请看下面"install mysql on windows"介绍
 ** 如果没有管理员账户
 使用下面命令创建管理员账户
 #+begin_src bash
@@ -29,12 +29,12 @@
 
 在Windows系统下安装MySQL的步骤通常包括以下几个阶段：
 1. 下载MySQL安装包
-   访问MySQL官网：MySQL Downloads
-   选择“MySQL Community Server”作为免费的开源版本。
-   在下载页面选择适用于Windows的版本，通常是一个.msi安装文件。
+   * 访问MySQL官网：https://dev.mysql.com/downloads/
+   * 选择“MySQL Community Server”作为免费的开源版本。
+   * 在下载页面选择适用于Windows的版本，通常是一个.msi安装文件。
 2. 运行安装程序
-   双击下载的.msi文件开始安装。
-   选择“Full”安装以安装所有组件，包括服务器、Shell、Workbench等，或者根据需要选择“Custom”进行自定义安装。
+   * 双击下载的.msi文件开始安装。
+   * 选择“Full”安装以安装所有组件，包括服务器、Shell、Workbench等，或者根据需要选择“Custom”进行自定义安装。
 3. 配置MySQL服务器
    - 安装过程中，安装向导会引导你进行服务器的配置，包括：
      * 配置网络设置，如端口号（默认是3306）。
