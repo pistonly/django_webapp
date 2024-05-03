@@ -1,4 +1,4 @@
-from .mindvision.camera_utils import mvCamera, get_devInfo_list, image_to_numpy
+from .mindvision.camera_utils import mvCamera, get_devInfo_list, image_to_numpy, rotate_image
 from pathlib import Path
 import json
 import numpy as np
@@ -182,6 +182,7 @@ class cameraManager:
             return False, "please update camera list"
         pb, FH = self.current_camera.get_one_frame()
         frame = image_to_numpy(pb, FH)
+        frame = rotate_image(frame, self.current_camera.rotation)
         frame = frame[:, :, 0] if frame.shape[-1] == 1 else frame
         frame = Image.fromarray(frame.astype(np.uint8))
         buffer = io.BytesIO()
@@ -206,6 +207,7 @@ class cameraManager:
         # get one frame
         pb, FH = self.current_camera.get_one_frame()
         frame = image_to_numpy(pb, FH)
+        frame = rotate_image(frame, self.current_camera.rotation)
         frame = frame[:, :, 0] if frame.shape[-1] == 1 else frame
         frame = Image.fromarray(frame.astype(np.uint8))
         buffer = io.BytesIO()

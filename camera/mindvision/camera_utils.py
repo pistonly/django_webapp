@@ -9,6 +9,7 @@ roi1 = [0, 0, 1920, 1080]
 roi0_disabled = 1
 roi1_disabled = 1
 default_name = 'camera_00'
+rotation = 0  # 0, 1, 2, 3, -1, -2, -3  # 1 means 90 degrees, -1 means -90 degrees
 
 imgType_dict = {'bmp': mvsdk.FILE_BMP}
 
@@ -37,6 +38,23 @@ def image_to_numpy(pFrameBuffer, FrameHead):
          1 if FrameHead.uiMediaType == mvsdk.CAMERA_MEDIA_TYPE_MONO8 else 3))
     return frame
 
+def rotate_image(image, rotation):
+    '''
+    rotation = 0, 1, 2, 3, -1, -2, -3
+    '''
+    if rotation == 0:
+        return image
+    if rotation == 1:
+        return np.flipud(image.T)
+    if rotation == 2 or rotation == -2:
+        return np.flip(image)
+    if rotation == 3:
+        return np.fliplr(image.T)
+    if rotation == -3:
+        return np.flipud(image.T)
+    if rotation == -1:
+        return np.fliplr(image.T)
+
 
 class mvCamera:
 
@@ -44,6 +62,7 @@ class mvCamera:
                  DevInfo: mvsdk.tSdkCameraDevInfo,
                  name: str = default_name) -> None:
         self.name = name
+        self.rotation = 0
         # name = camera_info.acFriendlyName.decode('utf8')
         self.roi0, self.roi1 = roi0, roi1
         self.roi0_disabled, self.roi1_disabled = 1, 1
@@ -210,6 +229,11 @@ class mvCamera:
         if "roi1_disabled" in kwargs:
             self.roi1_disabled = int(kwargs['roi1_disabled'])
 
+    def set_camera_rotation(self, **kwargs):
+        if "rotation" in kwargs:
+            rotation = int(kwargs["rotation"])
+            sign = -1 if rotation < 0 else 1
+            self.rotation = rotation % (sign * 4)
 
     def set_camera_parameter(self, **kwargs):
         hCamera = self.hCamera
@@ -218,6 +242,7 @@ class mvCamera:
             self.name = kwargs['name']
 
         self.set_camera_roi(**kwargs)
+        self.set_camera_rotation(**kwargs)
         # # set resolution
         # if "resolution" in kwargs:
         #     resolution = mvsdk.tSdkImageResolution()
@@ -234,7 +259,6 @@ class mvCamera:
                     mvsdk.CameraSetMirror(hCamera, 1, int(v))
                 else:
                     camera_set_functions[k.lower()](hCamera, int(v))
-
         return True
 
 
