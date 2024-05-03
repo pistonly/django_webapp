@@ -47,6 +47,9 @@ function updateSettingPan(data) {
         .attr('max', data.contrast_range[1])
         .val(data.contrast);
 
+    // update rotation
+    $('#rotation').val(data.rotation);
+
     // roi
     $('#roi-x0-0').val(data.roi0[0]);
     $('#roi-y0-0').val(data.roi0[1]);

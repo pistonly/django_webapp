@@ -128,6 +128,7 @@ $(document).ready(function() {
         }));
     });
 
+
     $('#contrast-range').on('input', function() {
         $('#contrast-value').text($(this).val());
     });
@@ -149,6 +150,26 @@ $(document).ready(function() {
             "sn": $('#select_camera').val(),
             "params": {
                 name: $('#camera-name-sel').val(),
+            }
+        }));
+    });
+
+    $('#rotation-left').click(function(e) {
+        ws.send(JSON.stringify({
+            "set_camera": 1,
+            "sn": $('#select_camera').val(),
+            "params": {
+                rotation: "plus",
+            }
+        }));
+    });
+
+    $('#rotation-right').click(function (e) {
+        ws.send(JSON.stringify({
+            "set_camera": 1,
+            "sn": $('#select_camera').val(),
+            "params": {
+                rotation: "minus",
             }
         }));
     });

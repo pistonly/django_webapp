@@ -188,6 +188,7 @@ class mvCamera:
         parameters.update(dict(zip(['roi0', 'roi1', 'roi0_disabled', 'roi1_disabled'],
                                    self.get_camera_roi())))
         parameters['name'] = self.name
+        parameters['rotation'] = self.rotation
 
         for k in self.selected_parameters:
             if k == "mirror":
@@ -231,7 +232,15 @@ class mvCamera:
 
     def set_camera_rotation(self, **kwargs):
         if "rotation" in kwargs:
-            rotation = int(kwargs["rotation"])
+            if kwargs['rotation'].lower() == "plus":
+                rotation = self.rotation + 1
+            elif kwargs['rotation'].lower() == "minus":
+                rotation = self.rotation - 1
+            else:
+                try:
+                    rotation = int(kwargs['rotation'])
+                except:
+                    rotation = self.rotation
             sign = -1 if rotation < 0 else 1
             self.rotation = rotation % (sign * 4)
 
