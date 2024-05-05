@@ -17,6 +17,12 @@
 #+begin_src bash
   python manage.py createsuperuser
 #+end_src
+** 数据库迁移
+#+begin_src 
+  python manage.py makemigrations productionImages
+  python manage.py migrate
+#+end_src
+
 ** 启动django服务
 #+begin_src bash
   # start server
