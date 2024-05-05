@@ -71,4 +71,12 @@ port = 3306
 default-character-set = utf8mb4
 #+end_src
 
+*** test
+
+#+begin_src bash
+  mysql --defaults-file=project_path/mysql.cnf
+  show tables;
+#+end_src
+
+
 
