@@ -77,7 +77,7 @@ class mvCamera:
             "ImageResolution", "TriggerMode", "Sharpness", "Mirror",
             "Sharpness", "Gamma", "Contrast", "FrameSpeed", "AeTarget",
             "TriggerDelayTime", "TriggerCount", "AeState", "AnalogGain",
-            "ExposureTime"
+            "ExposureTime",
         ]
         self.selected_parameters = [p.lower() for p in selected_parameters]
 
@@ -85,7 +85,7 @@ class mvCamera:
             "TriggerMode", "Sharpness", "hMirror", "vMirror", "Sharpness",
             "Gamma", "Contrast", "FrameSpeed", "AeTarget", "TriggerDelayTime",
             "TriggerCount", "AeState", "AnalogGain", "ExposureTime",
-            "antiFlick"
+            "antiFlick",
         ]
         self.selected_parameters_for_set = [
             p.lower() for p in selected_parameters
@@ -214,6 +214,9 @@ class mvCamera:
         parameters.update({"gamma_range": gamma_range})
         contrast_range = (cap.sContrastRange.iMin, cap.sContrastRange.iMax)
         parameters.update({"contrast_range": contrast_range})
+        analogGain_range = (cap.sExposeDesc.uiAnalogGainMin,
+                            cap.sExposeDesc.uiAnalogGainMin)
+        parameters.update({"analoggain_range": analogGain_range})
 
         return parameters
 
