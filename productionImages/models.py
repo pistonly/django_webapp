@@ -72,7 +72,7 @@ def create_new_productBatch(batch_number, operator_name):
     new_product.save()
     return new_product
 
-def get_or_create_product(batch_name, operator_name, camera_num=18):
+def get_or_create_product(batch_name, operator_name, camera_num=4):
     operator = User.objects.get(username=operator_name)
     try:
         product = ProductBatchV2.objects.get(batch_number=batch_name)

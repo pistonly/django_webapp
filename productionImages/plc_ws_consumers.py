@@ -13,7 +13,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 async def get_correct_client_id(client_info: list,
                                 connected_clients: dict,
-                                camera_num=18):
+                                camera_num=4):
     if client_info[-1] is not None:
         for i in range(camera_num):
             c_id = f"{client_info[1]}_{i}"
@@ -45,7 +45,7 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
     channel_layer = get_channel_layer()
     plc_checking = False
     _lock = Lock()
-    camera_num = 18
+    camera_num = 4
     current_product = ""
     ng_dict = {}
 
@@ -172,7 +172,7 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
             if client:
                 gallery_id = data['gallery_id']
                 _id = int(gallery_id.split("_")[-1])
-                row, col = _id % 3, _id // 3
+                row, col = _id % 2, _id // 2
                 img_id = f"#r-{row}-c-{col}"
                 data.update({"img_id": img_id})
                 await client.send(text_data=json.dumps(data))
@@ -206,7 +206,41 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                     if _id == "web":
                         continue
                     try:
-                        if int(_id.split("_")[-1]) < 9:
+                        if int(_id.split("_")[-1]) == 0:
+                            await client.send(
+                                json.dumps({
+                                    "trig": 1,
+                                    "trig_id": self.bottle_count
+                                }))
+                    except:
+                        pass
+            await asyncio.sleep(3)
+            M2_val = 1
+            if M2_val:
+                print("M2")
+                M2_val = 0
+                for _id, client in self.connected_clients.items():
+                    if _id == "web":
+                        continue
+                    try:
+                        if int(_id.split("_")[-1]) == 1:
+                            await client.send(
+                                json.dumps({
+                                    "trig": 1,
+                                    "trig_id": self.bottle_count
+                                }))
+                    except:
+                        pass
+            await asyncio.sleep(3)
+            M3_val = 1
+            if M3_val:
+                print("M3")
+                M3_val = 0
+                for _id, client in self.connected_clients.items():
+                    if _id == "web":
+                        continue
+                    try:
+                        if int(_id.split("_")[-1]) == 2:
                             await client.send(
                                 json.dumps({
                                     "trig": 1,
@@ -222,7 +256,7 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                     if _id == "web":
                         continue
                     try:
-                        if int(_id.split("_")[-1]) >= 9:
+                        if int(_id.split("_")[-1]) == 3:
                             await client.send(
                                 json.dumps({
                                     "trig": 1,
@@ -263,7 +297,7 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                     if _id == "web":
                         continue
                     try:
-                        if int(_id.split("_")[-1]) < 3:
+                        if int(_id.split("_")[-1]) == 0:
                             await client.send(
                                 json.dumps({
                                     "trig": 1,
@@ -281,7 +315,7 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                     if _id == "web":
                         continue
                     try:
-                        if (int(_id.split("_")[-1]) < 6) and (int(_id.split("_")[-1])) > 2 :
+                        if (int(_id.split("_")[-1]) == 1) :
                             await client.send(
                                 json.dumps({
                                     "trig": 1,
@@ -299,7 +333,7 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                     if _id == "web":
                         continue
                     try:
-                        if (int(_id.split("_")[-1]) < 9) and (int(_id.split("_")[-1])) > 5 :
+                        if int(_id.split("_")[-1]) == 2:
                             await client.send(
                                 json.dumps({
                                     "trig": 1,
@@ -317,7 +351,7 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                     if _id == "web":
                         continue
                     try:
-                        if (int(_id.split("_")[-1]) < 12) and (int(_id.split("_")[-1])) > 8 :
+                        if (int(_id.split("_")[-1]) == 3) :
                             await client.send(
                                 json.dumps({
                                     "trig": 1,
@@ -326,42 +360,6 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                     except Exception as e:
                         print(f"send M4 trigger error: {e}")
                 plc.set_M("M4", 0)
-
-            success, M5_val = plc.get_M("M5")
-            if success and int(M5_val) > 0:
-                print("M5: ", M5_val)
-                M5_val = 0
-                for _id, client in self.connected_clients.items():
-                    if _id == "web":
-                        continue
-                    try:
-                        if (int(_id.split("_")[-1]) < 15) and (int(_id.split("_")[-1])) > 11 :
-                            await client.send(
-                                json.dumps({
-                                    "trig": 1,
-                                    "trig_id": self.bottle_count
-                                }))
-                    except Exception as e:
-                        print(f"send M5 trigger error: {e}")
-                plc.set_M("M5", 0)
-
-            success, M6_val = plc.get_M("M6")
-            if success and int(M6_val) > 0:
-                print("M6: ", M6_val)
-                M6_val = 0
-                for _id, client in self.connected_clients.items():
-                    if _id == "web":
-                        continue
-                    try:
-                        if (int(_id.split("_")[-1]) < 18) and (int(_id.split("_")[-1])) > 14 :
-                            await client.send(
-                                json.dumps({
-                                    "trig": 1,
-                                    "trig_id": self.bottle_count
-                                }))
-                    except Exception as e:
-                        print(f"send M6 trigger error: {e}")
-                plc.set_M("M6", 0)
 
                 # calculate speed
                 self.bottle_count += 1

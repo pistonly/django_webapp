@@ -188,8 +188,8 @@ def run_asyncio_camera_loop(camera_sn: str, batch_number: str, ws_uri: str):
         if camera_manager.current_camera is not None:
             camera_name = camera_manager.current_camera.name
             camera_ord = int(camera_name.split("_")[-1])
-            if camera_ord > 18 or camera_ord < 0:
-                logging.info("camera ord should in range(0, 18)")
+            if camera_ord > 4 or camera_ord < 0:
+                logging.info("camera ord should in range(0, 4)")
                 camera_ord = 0
             gallery_title = f"{batch_number}_{camera_ord}"
         else: 

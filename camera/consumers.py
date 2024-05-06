@@ -39,7 +39,7 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
         self.gallerys = []
         # productureBatch = ProductBatchV2.objects.get(batch_number=batch_number)
         # camera_num = productureBatch.camera_num
-        camera_num = 18
+        camera_num = 4
         for i in range(camera_num):
             gallery = Gallery.objects.get(title=f"{batch_number}_{i}")
             self.gallerys.append(gallery)
