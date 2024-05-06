@@ -48,6 +48,8 @@ function updateSettingPan(data) {
         .val(data.contrast);
 
     // update rotation
+    console.log("data.rotation");
+    console.log(data.rotation);
     $('#rotation').val(data.rotation);
 
     // roi

@@ -255,5 +255,5 @@ class cameraManager:
         if self.current_camera is None:
             return False, "please update camera list"
         self.current_camera.set_camera_parameter(**parameters)
-        camera_info = self.get_camera_info()
-        return True, camera_info
+        success, camera_info = self.get_camera_info()
+        return success, camera_info

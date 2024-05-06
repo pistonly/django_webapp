@@ -131,7 +131,11 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
             if not success: print(message); return;
             params = text_data_json.get("params")
             success, camera_info = self.camera_manager.set_camera(params)
-            await self.send(json.dumps({"message": camera_info}))
+            # TODO: 
+            if 'rotation' in params:
+                await self.send(json.dumps({"camera_info": camera_info}))
+            else:
+                await self.send(json.dumps({"message": camera_info}))
             return 
 
         plc_arb_w = text_data_json.get("plc-arb-w")

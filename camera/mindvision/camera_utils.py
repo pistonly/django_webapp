@@ -44,16 +44,20 @@ def rotate_image(image, rotation):
     '''
     if rotation == 0:
         return image
+    image = image[:, :, 0]
     if rotation == 1:
-        return np.flipud(image.T)
+        image = np.flipud(image.T)
     if rotation == 2 or rotation == -2:
-        return np.flip(image)
+        image = np.flip(image)
     if rotation == 3:
-        return np.fliplr(image.T)
+        image = np.fliplr(image.T)
     if rotation == -3:
-        return np.flipud(image.T)
+        image = np.flipud(image.T)
     if rotation == -1:
-        return np.fliplr(image.T)
+        image = np.fliplr(image.T)
+    h, w = image.shape[0:2]
+    image = np.reshape(image, (h, w, 1))
+    return image
 
 
 class mvCamera:

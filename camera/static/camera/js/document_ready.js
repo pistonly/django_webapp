@@ -101,7 +101,6 @@ $(document).ready(function() {
 
     });
 
-    $('input[name="trigger"]').trigger('change');
 
     $('#triggerDelayTime').change(function() {
         // setting
