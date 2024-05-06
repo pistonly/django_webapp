@@ -114,6 +114,21 @@ $(document).ready(function() {
     });
 
     // lut mapping
+    $('#analoggain-range').on('input', function () {
+        $('#analoggain-value').text($(this).val());
+    });
+
+    $('#analoggain-range').on('mouseup', function () {
+        // 发送数据到后端url1
+        ws.send(JSON.stringify({
+            "set_camera": 1,
+            "sn": $('#select_camera').val(),
+            "params": {
+                analoggain: $(this).val(),
+            }
+        }));
+    });
+
     $('#gamma-range').on('input', function() {
         $('#gamma-value').text($(this).val());
     });

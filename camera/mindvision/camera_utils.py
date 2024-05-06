@@ -219,7 +219,7 @@ class mvCamera:
         contrast_range = (cap.sContrastRange.iMin, cap.sContrastRange.iMax)
         parameters.update({"contrast_range": contrast_range})
         analogGain_range = (cap.sExposeDesc.uiAnalogGainMin,
-                            cap.sExposeDesc.uiAnalogGainMin)
+                            cap.sExposeDesc.uiAnalogGainMax)
         parameters.update({"analoggain_range": analogGain_range})
 
         return parameters
