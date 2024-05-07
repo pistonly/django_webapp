@@ -239,15 +239,21 @@ class mvCamera:
 
     def set_camera_rotation(self, **kwargs):
         if "rotation" in kwargs:
-            if kwargs['rotation'].lower() == "plus":
-                rotation = self.rotation + 1
-            elif kwargs['rotation'].lower() == "minus":
-                rotation = self.rotation - 1
-            else:
-                try:
-                    rotation = int(kwargs['rotation'])
-                except:
-                    rotation = self.rotation
+            rotation = kwargs['rotation']
+            if isinstance(rotation, str):
+                rotation = rotation.lower()
+                if rotation == "plus":
+                    rotation = self.rotation + 1
+                elif rotation == "minus":
+                    rotation = self.rotation - 1
+                else:
+                    try:
+                        rotation = int(rotation)
+                    except:
+                        rotation = self.rotation
+            elif not isinstance(rotation, int):
+                rotation = self.rotation
+            assert isinstance(rotation, int), "rotation should be int"
             sign = -1 if rotation < 0 else 1
             self.rotation = rotation % (sign * 4)
 
