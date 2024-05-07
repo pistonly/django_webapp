@@ -206,7 +206,7 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                     if _id == "web":
                         continue
                     try:
-                        if int(_id.split("_")[-1]) < 9:
+                        if int(_id.split("_")[-1]) < 3:
                             await client.send(
                                 json.dumps({
                                     "trig": 1,
@@ -215,14 +215,16 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                     except:
                         pass
             await asyncio.sleep(3)
-            M4_val = 1
-            if M4_val:
-                print("m4")
+            # --------------------
+            M2_val = 1
+            if M2_val:
+                print("m2")
+                M2_val = 0
                 for _id, client in self.connected_clients.items():
                     if _id == "web":
                         continue
                     try:
-                        if int(_id.split("_")[-1]) >= 9:
+                        if (int(_id.split("_")[-1]) < 6) and (int(_id.split("_")[-1])) > 2 :
                             await client.send(
                                 json.dumps({
                                     "trig": 1,
@@ -230,7 +232,78 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                                 }))
                     except:
                         pass
-
+            await asyncio.sleep(3)
+            # --------------------
+            M3_val = 1
+            if M3_val:
+                print("M3")
+                M3_val = 0
+                for _id, client in self.connected_clients.items():
+                    if _id == "web":
+                        continue
+                    try:
+                        if (int(_id.split("_")[-1]) < 9) and (int(_id.split("_")[-1])) > 5 :
+                            await client.send(
+                                json.dumps({
+                                    "trig": 1,
+                                    "trig_id": self.bottle_count
+                                }))
+                    except:
+                        pass
+            await asyncio.sleep(3)
+            # --------------------
+            M4_val = 1
+            if M4_val:
+                print("M4")
+                M4_val = 0
+                for _id, client in self.connected_clients.items():
+                    if _id == "web":
+                        continue
+                    try:
+                        if (int(_id.split("_")[-1]) < 12) and (int(_id.split("_")[-1])) > 8 :
+                            await client.send(
+                                json.dumps({
+                                    "trig": 1,
+                                    "trig_id": self.bottle_count
+                                }))
+                    except:
+                        pass
+            await asyncio.sleep(3)
+            # --------------------
+            M5_val = 1
+            if M5_val:
+                print("M5")
+                M5_val = 0
+                for _id, client in self.connected_clients.items():
+                    if _id == "web":
+                        continue
+                    try:
+                        if (int(_id.split("_")[-1]) < 15) and (int(_id.split("_")[-1])) > 11 :
+                            await client.send(
+                                json.dumps({
+                                    "trig": 1,
+                                    "trig_id": self.bottle_count
+                                }))
+                    except:
+                        pass
+            await asyncio.sleep(3)
+            # --------------------
+            M6_val = 1
+            if M6_val:
+                print("M6")
+                M6_val = 0
+                for _id, client in self.connected_clients.items():
+                    if _id == "web":
+                        continue
+                    try:
+                        if (int(_id.split("_")[-1]) < 18) and (int(_id.split("_")[-1])) > 14 :
+                            await client.send(
+                                json.dumps({
+                                    "trig": 1,
+                                    "trig_id": self.bottle_count
+                                }))
+                    except:
+                        pass
                 # calculate speed
                 self.bottle_count += 1
                 if self.bottle_count % 2 == 0:
