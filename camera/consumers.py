@@ -235,13 +235,17 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
                     print(message)
                     return 
             t0 = time.time()
+            get_frame_cost = []
             while self.preview:
                 t0_p = time.time()
                 frame = await self.get_camera_frame()
-                # print(f"get frame cost: {time.time() - t0_}")
+                get_frame_cost.append(time.time() - t0_p)
+                # print(f"get frame cost: {time.time() - t0_p}")
                 await self.send_frame(frame)  # 调用send_frame发送图像数据
-                if frame_num % 100 == 99:
-                    print(f"frame rate: {100 / (time.time() - t0)}")
+                if frame_num % 30 == 29:
+                    if len(get_frame_cost) > 30:
+                        get_frame_cost = get_frame_cost[-30:]
+                    print(f"frame rate: {30 / (time.time() - t0)}, get_frame fps: {1 / np.mean(get_frame_cost)}")
                     t0 = time.time()
                 frame_num += 1
                 wait_time = 0.05 - (time.time() - t0_p)  # 20fps
