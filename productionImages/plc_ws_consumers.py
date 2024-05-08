@@ -303,7 +303,7 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                                     "trig": 1,
                                     "trig_id": self.bottle_count
                                 }))
-                            print(f"M1 send timestamp: {time.time()}")
+                            print(f"M1 send timestamp: {time.time()}, target: {_id}")
                     except Exception as e:
                         print(f"send M1 trigger error: {e}")
                 plc.set_M("M1", 0)
@@ -322,7 +322,7 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                                     "trig": 1,
                                     "trig_id": self.bottle_count
                                 }))
-                            print(f"M2 send timestamp: {time.time()}")
+                            print(f"M2 send timestamp: {time.time()}, target: {_id}")
                     except Exception as e:
                         print(f"send M2 trigger error: {e}")
                 plc.set_M("M2", 0)
@@ -341,7 +341,7 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                                     "trig": 1,
                                     "trig_id": self.bottle_count
                                 }))
-                            print(f"M3 send timestamp: {time.time()}")
+                            print(f"M3 send timestamp: {time.time()}, target: {_id}")
                     except Exception as e:
                         print(f"send M3 trigger error: {e}")
                 plc.set_M("M3", 0)
@@ -360,7 +360,7 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                                     "trig": 1,
                                     "trig_id": self.bottle_count
                                 }))
-                            print(f"M4 send timestamp: {time.time()}")
+                            print(f"M4 send timestamp: {time.time()}, target: {_id}")
                     except Exception as e:
                         print(f"send M4 trigger error: {e}")
                 plc.set_M("M4", 0)
