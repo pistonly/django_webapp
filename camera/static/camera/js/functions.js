@@ -41,6 +41,7 @@ function updateSettingPan(data) {
     $('#gamma-range').attr('min', data.gamma_range[0])
         .attr('max', data.gamma_range[1])
         .val(data.gamma);
+    $('#analoggain-value').text(data.analoggain);
     $('#analoggain-range').attr('min', data.analoggain_range[0])
         .attr('max', data.analoggain_range[1])
         .val(data.analoggain);
