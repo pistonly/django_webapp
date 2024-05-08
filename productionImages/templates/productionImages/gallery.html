@@ -3,35 +3,91 @@
 
 {% block product_image_grid %}
 <div class="col-md-7 mb-3" id="product-images">
-
-    <div class="container mt-2">
+    <div class="container-fluid mt-2" id="images-preview">
         <!-- 图片行1 -->
         <div class="row mb-2">
-            <div class="col-2"><img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-0-c-0"></div>
-            <div class="col-2"><img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-0-c-1"></div>
-            <div class="col-2"><img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-0-c-2"></div>
-            <div class="col-2"><img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-0-c-3"></div>
-            <div class="col-2"><img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-0-c-4"></div>
-            <div class="col-2"><img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-0-c-5"></div>
+            <div class="col-12 col-sm-2 text-center">
+                <img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-0-c-0">
+                <p class="mt-1">camera00</p> <!-- mt-1: 添加顶部间距 -->
+            </div>
+            <div class="col-12 col-sm-2 text-center">
+                <img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-0-c-1">
+                <p class="mt-1">camera03</p> <!-- mt-1: 添加顶部间距 -->
+            </div>
+            <div class="col-12 col-sm-2 text-center">
+                <img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-0-c-2">
+                <p class="mt-1">camera06</p> <!-- mt-1: 添加顶部间距 -->
+            </div>
+            <div class="col-12 col-sm-2 text-center">
+                <img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-0-c-3">
+                <p class="mt-1">camera09</p> <!-- mt-1: 添加顶部间距 -->
+            </div>
+            <div class="col-12 col-sm-2 text-center">
+                <img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-0-c-4">
+                <p class="mt-1">camera12</p> <!-- mt-1: 添加顶部间距 -->
+            </div>
+            <div class="col-12 col-sm-2 text-center">
+                <img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-0-c-5">
+                <p class="mt-1">camera15</p> <!-- mt-1: 添加顶部间距 -->
+            </div>
         </div>
+
         <!-- 图片行2 -->
         <div class="row mb-2">
-            <div class="col-2"><img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-1-c-0"></div>
-            <div class="col-2"><img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-1-c-1"></div>
-            <div class="col-2"><img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-1-c-2"></div>
-            <div class="col-2"><img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-1-c-3"></div>
-            <div class="col-2"><img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-1-c-4"></div>
-            <div class="col-2"><img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-1-c-5"></div>
+            <div class="col-12 col-sm-2 text-center">
+                <img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-1-c-0">
+                <p class="mt-1">camera01</p> <!-- mt-1: 添加顶部间距 -->
+            </div>
+            <div class="col-12 col-sm-2 text-center">
+                <img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-1-c-1">
+                <p class="mt-1">camera04</p> <!-- mt-1: 添加顶部间距 -->
+            </div>
+            <div class="col-12 col-sm-2 text-center">
+                <img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-1-c-2">
+                <p class="mt-1">camera07</p> <!-- mt-1: 添加顶部间距 -->
+            </div>
+            <div class="col-12 col-sm-2 text-center">
+                <img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-1-c-3">
+                <p class="mt-1">camera10</p> <!-- mt-1: 添加顶部间距 -->
+            </div>
+            <div class="col-12 col-sm-2 text-center">
+                <img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-1-c-4">
+                <p class="mt-1">camera13</p> <!-- mt-1: 添加顶部间距 -->
+            </div>
+            <div class="col-12 col-sm-2 text-center">
+                <img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-1-c-5">
+                <p class="mt-1">camera16</p> <!-- mt-1: 添加顶部间距 -->
+            </div>
         </div>
+
         <!-- 图片行3 -->
         <div class="row mb-2">
-            <div class="col-2"><img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-2-c-0"></div>
-            <div class="col-2"><img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-2-c-1"></div>
-            <div class="col-2"><img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-2-c-2"></div>
-            <div class="col-2"><img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-2-c-3"></div>
-            <div class="col-2"><img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-2-c-4"></div>
-            <div class="col-2"><img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-2-c-5"></div>
+            <div class="col-12 col-sm-2 text-center">
+                <img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-2-c-0">
+                <p class="mt-1">camera02</p> <!-- mt-1: 添加顶部间距 -->
+            </div>
+            <div class="col-12 col-sm-2 text-center">
+                <img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-2-c-1">
+                <p class="mt-1">camera05</p> <!-- mt-1: 添加顶部间距 -->
+            </div>
+            <div class="col-12 col-sm-2 text-center">
+                <img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-2-c-2">
+                <p class="mt-1">camera08</p> <!-- mt-1: 添加顶部间距 -->
+            </div>
+            <div class="col-12 col-sm-2 text-center">
+                <img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-2-c-3">
+                <p class="mt-1">camera11</p> <!-- mt-1: 添加顶部间距 -->
+            </div>
+            <div class="col-12 col-sm-2 text-center">
+                <img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-2-c-4">
+                <p class="mt-1">camera14</p> <!-- mt-1: 添加顶部间距 -->
+            </div>
+            <div class="col-12 col-sm-2 text-center">
+                <img src="{% static 'camera/images/150.png' %}" class="img-fluid grid-images" id="r-2-c-5">
+                <p class="mt-1">camera17</p> <!-- mt-1: 添加顶部间距 -->
+            </div>
         </div>
+
     </div>
 
 
@@ -44,7 +100,7 @@
                     <div class="input-group-prepend">
                         <span class="input-group-text">瓶口外径:</span>
                     </div>
-                    <input type="text" class="fo{% static 'camera/images/150.png' %}="bottle-top" aria-label="bottle-top">
+                    <input type="text" class="fo{% static 'camera/images/150.png' %}=" bottle-top" aria-label="bottle-top">
                     <div class="input-group-append">
                         <span class="input-group-text">mm</span>
                     </div>
@@ -56,7 +112,7 @@
                     <div class="input-group-prepend">
                         <span class="input-group-text" id="">瓶口外径:</span>
                     </div>
-                    <input type="text" class="fo{% static 'camera/images/150.png' %}="bottle-top" aria-label="bottle-top">
+                    <input type="text" class="fo{% static 'camera/images/150.png' %}=" bottle-top" aria-label="bottle-top">
                     <div class="input-group-append">
                         <span class="input-group-text">mm</span>
                     </div>
@@ -71,7 +127,7 @@
                     <div class="input-group-prepend">
                         <span class="input-group-text" id="">瓶底外径:</span>
                     </div>
-                    <input type="text" class="fo{% static 'camera/images/150.png' %}="bottle-bottom" aria-label="bottle-bottom">
+                    <input type="text" class="fo{% static 'camera/images/150.png' %}=" bottle-bottom" aria-label="bottle-bottom">
                     <div class="input-group-append">
                         <span class="input-group-text">mm</span>
                     </div>
@@ -83,7 +139,7 @@
                     <div class="input-group-prepend">
                         <span class="input-group-text" id="">瓶底外径:</span>
                     </div>
-                    <input type="text" class="fo{% static 'camera/images/150.png' %}="bottle-bottom" aria-label="bottle-bottom">
+                    <input type="text" class="fo{% static 'camera/images/150.png' %}=" bottle-bottom" aria-label="bottle-bottom">
                     <div class="input-group-append">
                         <span class="input-group-text">mm</span>
                     </div>
