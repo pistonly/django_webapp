@@ -103,6 +103,7 @@ def capture_and_upload(camera_manager: cameraManager, gallery_title):
             print("***************************************")
             img_io = get_random_image(gallery_title)
             print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+    time_stamp = time.time()
     ng = get_AI_results(img_io)
     camera_roi_info = camera_manager.get_camera_roi()
     camera_roi_info = dict(zip(['roi0', 'roi1', 'roi0_disabled', 'roi1_disabled'],
@@ -119,6 +120,7 @@ def capture_and_upload(camera_manager: cameraManager, gallery_title):
         "thumbnail": photo.get_display_url(),
         "title": photo.title,
         "ng": ng,
+        "time_stamp": time_stamp,
     }
     return img_info
 
@@ -159,10 +161,11 @@ async def websocket_client(camera_manager, gallery_title, uri):
                     break
 
                 elif "trig" in message:
-                    logging.info(f"{gallery_title}: Capturing image at timestamp: {time.time()}.")
                     loop = asyncio.get_running_loop()
+                    _t0 = time.time()
                     img_info = await loop.run_in_executor(
                         None, capture_and_upload, camera_manager, gallery_title)
+                    logging.info(f"{gallery_title}: Capturing image at timestamp: {_t0}, finish at: {img_info['time_stamp']}.")
 
                     img_info.update({
                         "target": "web",
