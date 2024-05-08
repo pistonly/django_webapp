@@ -16,6 +16,7 @@ import sys
 import os
 from asgiref.sync import sync_to_async
 from concurrent.futures import ThreadPoolExecutor
+import time
 
 sys.path.insert(0, "..")
 
@@ -158,7 +159,7 @@ async def websocket_client(camera_manager, gallery_title, uri):
                     break
 
                 elif "trig" in message:
-                    # logging.info("Capturing and uploading image.")
+                    logging.info(f"{gallery_title}: Capturing image at timestamp: {time.time()}.")
                     loop = asyncio.get_running_loop()
                     img_info = await loop.run_in_executor(
                         None, capture_and_upload, camera_manager, gallery_title)
