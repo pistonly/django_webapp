@@ -280,7 +280,11 @@ class mvCamera:
                 elif k == "vMirror".lower():
                     mvsdk.CameraSetMirror(hCamera, 1, int(v))
                 else:
-                    camera_set_functions[k.lower()](hCamera, int(v))
+                    if k.lower() == "exposuretime":
+                        v = float(v)
+                    else:
+                        v = int(v)
+                    camera_set_functions[k.lower()](hCamera, v)
         return True
 
 
