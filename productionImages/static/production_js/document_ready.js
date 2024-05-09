@@ -146,11 +146,14 @@ $(document).ready(function () {
     startWS();
 
     $('.grid-images').click(function () {
-        const url = $(this).data('original-url');
-        const title = $(this).data('title');
-        $("#origin-image").attr({src: url,
-                                 alt: title});
+        const url = $(this).attr('data-original-url');
+        const title = $(this).attr('data-title');
+        $("#origin-image").attr({
+            src: url,
+            alt: title
+        });
     });
+
 
     $('#start-camera-background').click(function (){
         console.log("start");
