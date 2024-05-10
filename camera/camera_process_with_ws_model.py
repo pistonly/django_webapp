@@ -95,13 +95,10 @@ def get_AI_results(img_io):
 
 
 def capture_and_upload(camera_manager: cameraManager, gallery_title, plc_timestamp, delay=0.02):
-    now = time.time()
-    sleep_time = delay - (now - plc_timestamp)
-    if sleep_time > 0.000001:
-        time.sleep(sleep_time)
-        print(f"NOTE: sleep time: {sleep_time}")
-    else:
-        print(f"NOTE: sleep time < 0: {sleep_time}")
+    target_time = plc_timestamp + delay
+    while time.time() < target_time:
+        time.sleep(0.001)
+    start_timestamp = time.time()
     if camera_manager.current_camera is None:
         img_io = get_random_image(gallery_title)
     else:
@@ -110,7 +107,7 @@ def capture_and_upload(camera_manager: cameraManager, gallery_title, plc_timesta
             print("***************************************")
             img_io = get_random_image(gallery_title)
             print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    time_stamp = time.time()
+    finish_timestamp = time.time()
     ng = get_AI_results(img_io)
     camera_roi_info = camera_manager.get_camera_roi()
     camera_roi_info = dict(zip(['roi0', 'roi1', 'roi0_disabled', 'roi1_disabled'],
@@ -127,7 +124,8 @@ def capture_and_upload(camera_manager: cameraManager, gallery_title, plc_timesta
         "thumbnail": photo.get_display_url(),
         "title": photo.title,
         "ng": ng,
-        "time_stamp": time_stamp,
+        "start_timestamp": start_timestamp,
+        "finish_timestamp": finish_timestamp,
     }
     return img_info
 
@@ -163,11 +161,10 @@ async def websocket_client(camera_manager, gallery_title, uri):
 
                 elif "trig" in message:
                     loop = asyncio.get_running_loop()
-                    _t0 = time.time()
                     plc_timestamp = message.get("timestamp")
                     img_info = await loop.run_in_executor(
                         None, capture_and_upload, camera_manager, gallery_title, plc_timestamp)
-                    logging.info(f"{gallery_title}: Capturing image at timestamp: {_t0}, finish at: {img_info['time_stamp']}.")
+                    logging.info(f"{gallery_title}: Capturing image at timestamp: {img_info['start_timestamp']}, finish at: {img_info['finish_timestamp']}.")
 
                     img_info.update({
                         "target": "web",
