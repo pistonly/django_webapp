@@ -196,84 +196,40 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
 
     async def simulate_check(self):
         while PLCControlConsumer.plc_checking:
-            await asyncio.sleep(3)
-            print("plc checking in check: ", PLCControlConsumer.plc_checking)
-            M1_val = 1
-            if M1_val:
-                print("m1")
-                M1_val = 0
-                for _id, client in self.connected_clients.items():
-                    if _id == "web":
-                        continue
-                    try:
-                        if int(_id.split("_")[-1]) == 0:
-                            await client.send(
-                                json.dumps({
-                                    "trig": 1,
-                                    "trig_id": self.bottle_count
-                                }))
-                    except:
-                        pass
-            await asyncio.sleep(3)
-            M2_val = 1
-            if M2_val:
-                print("M2")
-                M2_val = 0
-                for _id, client in self.connected_clients.items():
-                    if _id == "web":
-                        continue
-                    try:
-                        if int(_id.split("_")[-1]) == 1:
-                            await client.send(
-                                json.dumps({
-                                    "trig": 1,
-                                    "trig_id": self.bottle_count
-                                }))
-                    except:
-                        pass
-            await asyncio.sleep(3)
-            M3_val = 1
-            if M3_val:
-                print("M3")
-                M3_val = 0
-                for _id, client in self.connected_clients.items():
-                    if _id == "web":
-                        continue
-                    try:
-                        if int(_id.split("_")[-1]) == 2:
-                            await client.send(
-                                json.dumps({
-                                    "trig": 1,
-                                    "trig_id": self.bottle_count
-                                }))
-                    except:
-                        pass
-            await asyncio.sleep(3)
-            M4_val = 1
-            if M4_val:
-                print("m4")
-                for _id, client in self.connected_clients.items():
-                    if _id == "web":
-                        continue
-                    try:
-                        if int(_id.split("_")[-1]) == 3:
-                            await client.send(
-                                json.dumps({
-                                    "trig": 1,
-                                    "trig_id": self.bottle_count
-                                }))
-                    except:
-                        pass
-
+            M4_trigged = False
+            for reg_ind, reg in enumerate(["sM1", "sM2", "sM3", "sM4"]):
+                await asyncio.sleep(3)
+                await self.plc_send(reg_ind * 3, (reg_ind + 1) * 3, reg)
+                if reg == "sM4":
+                    M4_trigged = True
+            if M4_trigged:
                 # calculate speed
                 self.bottle_count += 1
-                if self.bottle_count % 2 == 0:
+                if self.bottle_count % 10 == 0:
                     self.speed = self.bottle_count / (time.time() -
                                                       self.start_time)
                     if "web" in self.connected_clients:
                         await self.connected_clients["web"].send(
                             text_data=json.dumps(
                                 {"speed": f"{self.speed:.2f}"}))
+
+    async def plc_send(self, id_start, id_end, plc_reg="M1"):
+        timestamp = time.time()
+        for _id, client in self.connected_clients.items():
+            if _id == "web":
+                continue
+            try:
+                if (int(_id.split("_")[-1]) < id_end) and (int(_id.split("_")[-1]) >= id_start):
+                    await client.send(
+                        json.dumps({
+                            "trig": 1,
+                            "trig_id": self.bottle_count,
+                            "timestamp": timestamp
+                        }))
+                    print(f"{plc_reg} send timestamp: {time.time()}, target: {_id}")
+            except Exception as e:
+                print(f"send M1 trigger error: {e}")
+
 
     async def check_plc_reg(self):
         plc = plcControl()
@@ -289,82 +245,16 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
 
         print("~~~~~~~~~~~~~~~~~~~~ check ~~~~~~~~~~~~~~~~~~~~")
         while PLCControlConsumer.plc_checking:
-            success, M1_val = plc.get_M("M1")
-            if success and int(M1_val) > 0:
-                print("m1: ", M1_val)
-                M1_val = 0
-                for _id, client in self.connected_clients.items():
-                    if _id == "web":
-                        continue
-                    try:
-                        if int(_id.split("_")[-1]) == 0:
-                            await client.send(
-                                json.dumps({
-                                    "trig": 1,
-                                    "trig_id": self.bottle_count
-                                }))
-                            print(f"M1 send timestamp: {time.time()}, target: {_id}")
-                    except Exception as e:
-                        print(f"send M1 trigger error: {e}")
-                plc.set_M("M1", 0)
-
-            success, M2_val = plc.get_M("M2")
-            if success and int(M2_val) > 0:
-                print("m2: ", M2_val)
-                M2_val = 0
-                for _id, client in self.connected_clients.items():
-                    if _id == "web":
-                        continue
-                    try:
-                        if (int(_id.split("_")[-1]) == 1) :
-                            await client.send(
-                                json.dumps({
-                                    "trig": 1,
-                                    "trig_id": self.bottle_count
-                                }))
-                            print(f"M2 send timestamp: {time.time()}, target: {_id}")
-                    except Exception as e:
-                        print(f"send M2 trigger error: {e}")
-                plc.set_M("M2", 0)
-
-            success, M3_val = plc.get_M("M3")
-            if success and int(M3_val) > 0:
-                print("m3: ", M3_val)
-                M3_val = 0
-                for _id, client in self.connected_clients.items():
-                    if _id == "web":
-                        continue
-                    try:
-                        if int(_id.split("_")[-1]) == 2:
-                            await client.send(
-                                json.dumps({
-                                    "trig": 1,
-                                    "trig_id": self.bottle_count
-                                }))
-                            print(f"M3 send timestamp: {time.time()}, target: {_id}")
-                    except Exception as e:
-                        print(f"send M3 trigger error: {e}")
-                plc.set_M("M3", 0)
-
-            success, M4_val = plc.get_M("M4")
-            if success and int(M4_val) > 0:
-                print("M4: ", M4_val)
-                M4_val = 0
-                for _id, client in self.connected_clients.items():
-                    if _id == "web":
-                        continue
-                    try:
-                        if (int(_id.split("_")[-1]) == 3) :
-                            await client.send(
-                                json.dumps({
-                                    "trig": 1,
-                                    "trig_id": self.bottle_count
-                                }))
-                            print(f"M4 send timestamp: {time.time()}, target: {_id}")
-                    except Exception as e:
-                        print(f"send M4 trigger error: {e}")
-                plc.set_M("M4", 0)
-
+            M4_trigged = False
+            for reg_ind, reg in enumerate(["M1", "M2", "M3", "M4"]):
+                success, M_val = plc.get_M(reg)
+                if success and int(M_val) > 0:
+                    print(f"{reg}: {M_val} ")
+                    await self.plc_send(reg_ind * 3, (reg_ind + 1) * 3, reg)
+                    plc.set_M(reg, 0)
+                    if reg == "M4":
+                        M4_trigged = True
+            if M4_trigged:  # last M trigged
                 # calculate speed
                 self.bottle_count += 1
                 if self.bottle_count % 10 == 0:

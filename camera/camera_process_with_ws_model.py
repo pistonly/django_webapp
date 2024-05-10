@@ -94,7 +94,14 @@ def get_AI_results(img_io):
     return ng
 
 
-def capture_and_upload(camera_manager: cameraManager, gallery_title):
+def capture_and_upload(camera_manager: cameraManager, gallery_title, plc_timestamp, delay=0.02):
+    now = time.time()
+    sleep_time = delay - (now - plc_timestamp)
+    if sleep_time > 0.000001:
+        time.sleep(sleep_time)
+        print(f"NOTE: sleep time: {sleep_time}")
+    else:
+        print(f"NOTE: sleep time < 0: {sleep_time}")
     if camera_manager.current_camera is None:
         img_io = get_random_image(gallery_title)
     else:
@@ -122,12 +129,6 @@ def capture_and_upload(camera_manager: cameraManager, gallery_title):
         "ng": ng,
         "time_stamp": time_stamp,
     }
-    return img_info
-
-
-async def capture_and_upload_async(camera, gallery_title):
-    # 将同步函数转换为异步函数并调用
-    img_info = await sync_to_async(capture_and_upload)(camera, gallery_title)
     return img_info
 
 
@@ -163,8 +164,9 @@ async def websocket_client(camera_manager, gallery_title, uri):
                 elif "trig" in message:
                     loop = asyncio.get_running_loop()
                     _t0 = time.time()
+                    plc_timestamp = message.get("timestamp")
                     img_info = await loop.run_in_executor(
-                        None, capture_and_upload, camera_manager, gallery_title)
+                        None, capture_and_upload, camera_manager, gallery_title, plc_timestamp)
                     logging.info(f"{gallery_title}: Capturing image at timestamp: {_t0}, finish at: {img_info['time_stamp']}.")
 
                     img_info.update({
