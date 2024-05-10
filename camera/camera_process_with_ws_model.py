@@ -97,7 +97,7 @@ def get_AI_results(img_io):
 def capture_and_upload(camera_manager: cameraManager, gallery_title, plc_timestamp, delay=0.02):
     target_time = plc_timestamp + delay
     while time.time() < target_time:
-        time.sleep(0.001)
+        time.sleep(0.0001)
     start_timestamp = time.time()
     if camera_manager.current_camera is None:
         img_io = get_random_image(gallery_title)
