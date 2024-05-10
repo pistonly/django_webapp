@@ -199,7 +199,7 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
             M4_trigged = False
             for reg_ind, reg in enumerate(["sM1", "sM2", "sM3", "sM4"]):
                 await asyncio.sleep(3)
-                await self.plc_send(reg_ind * 3, (reg_ind + 1) * 3, reg)
+                await self.plc_send(reg_ind, (reg_ind + 1), reg)
                 if reg == "sM4":
                     M4_trigged = True
             if M4_trigged:
@@ -250,7 +250,7 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                 success, M_val = plc.get_M(reg)
                 if success and int(M_val) > 0:
                     print(f"{reg}: {M_val} ")
-                    await self.plc_send(reg_ind * 3, (reg_ind + 1) * 3, reg)
+                    await self.plc_send(reg_ind, (reg_ind + 1) , reg)
                     plc.set_M(reg, 0)
                     if reg == "M4":
                         M4_trigged = True
