@@ -140,6 +140,7 @@ class mvCamera:
             mvsdk.CameraReleaseImageBuffer(self.hCamera, pRawData)
             return self.pFrameBuffer, FrameHead
         except:
+            print("timeout")
             return None, None
 
     def softTrigger(self):
