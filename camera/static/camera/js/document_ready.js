@@ -84,9 +84,9 @@ $(document).ready(function() {
         trigger_mode = $(this).val();
         // setting
         let trigger_mode_val = trigger_mode;
-        if (trigger_mode_val == "2"){
-            trigger_mode_val = "1";
-        }
+        // if (trigger_mode_val == "2"){
+        //     trigger_mode_val = "1";
+        // }
         ws.send(JSON.stringify({
             "set_camera": 1,
             "sn": $('#select_camera').val(),
@@ -196,7 +196,7 @@ $(document).ready(function() {
         ws.send(JSON.stringify({
             'camera_id': $('#select_camera').val(),
             'trigger_mode': trigger_mode,
-            'soft_trigger': 1
+            'soft_trigger': 1  // or hard trigger
         }));
         $(this).prop("disabled", true);
     });
