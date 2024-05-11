@@ -181,6 +181,8 @@ class cameraManager:
         if self.current_camera is None:
             return False, "please update camera list"
         pb, FH = self.current_camera.get_one_frame()
+        if pb is None:
+            return False, "capture timeout"
         frame = image_to_numpy(pb, FH)
         frame = rotate_image(frame, self.current_camera.rotation)
         frame = frame[:, :, 0] if frame.shape[-1] == 1 else frame
@@ -206,6 +208,8 @@ class cameraManager:
         self.current_camera.softTrigger()
         # get one frame
         pb, FH = self.current_camera.get_one_frame()
+        if pb is None:
+            return False, "capture timeout"
         frame = image_to_numpy(pb, FH)
         frame = rotate_image(frame, self.current_camera.rotation)
         frame = frame[:, :, 0] if frame.shape[-1] == 1 else frame
