@@ -266,7 +266,8 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
             if success:
                 if int(v) > 0:
                     self.plc_trigger_checking = False
-                    success, buffer = self.camera_manager.soft_trigger(camera_sn)
+                    # get image from buffer
+                    success, buffer = self.camera_manager.get_one_frame()
                     if not success:
                         message = buffer
                         print("plc trigger failed: ", buffer)
