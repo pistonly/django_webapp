@@ -262,7 +262,13 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
         self.plc_trigger_checking = True
         message = ""
         while self.plc_trigger_checking:
-            success, v = self.plc.get_M("M1")
+            current_reg = "M1"
+            for reg in ["M1", "M2", "M3", "M4", "M5", "M6"]:
+                success, v = self.plc.get_M(reg)
+                if success:
+                    current_reg = reg
+                    break
+
             if success:
                 if int(v) > 0:
                     self.plc_trigger_checking = False
@@ -274,7 +280,7 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
                     else:
                         await self.send_frame(buffer)
                         message = "plc_trigger_success"
-                    self.plc.set_M("M1", 0)
+                    self.plc.set_M(current_reg, 0)
             await asyncio.sleep(0.01)
         await self.send(json.dumps({"plc_trigger_return":1, "message": message}))
         self.plc_trigger_task = None
