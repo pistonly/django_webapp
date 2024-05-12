@@ -43,7 +43,7 @@ function updateSettingPan(data) {
         .val(data.gamma);
     $('#analoggain-value').text(data.analoggain);
     $('#analoggain-range').attr('min', data.analoggain_range[0])
-        .attr('max', data.analoggain_range[1])
+        .attr('max', 100)
         .val(data.analoggain);
 
     $('#contrast-value').text(data.contrast);
