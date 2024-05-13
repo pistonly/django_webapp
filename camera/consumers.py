@@ -263,6 +263,7 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
         message = ""
         while self.plc_trigger_checking:
             current_reg = "M1"
+            success = False
             for reg in ["M1", "M2", "M3", "M4", "M5", "M6"]:
                 success, v = self.plc.get_M(reg)
                 if success:
