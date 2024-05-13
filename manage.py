@@ -4,6 +4,8 @@ import os
 import sys
 from multiprocessing import Process
 
+import pickle  # 导入pickle模块
+
 
 def start_log_server():
     # 日志服务器代码
@@ -20,9 +22,12 @@ def start_log_server():
                     break
                 slen = struct.unpack('>L', chunk)[0]
                 record = self.connection.recv(slen)
-                obj = logging.makeLogRecord(eval(record))
-                logger = logging.getLogger(obj.name)
-                logger.handle(obj)
+                try:
+                    obj = pickle.loads(record)  # 使用pickle.loads代替eval
+                    logger = logging.getLogger(obj.name)
+                    logger.handle(obj)
+                except Exception as e:
+                    print(f"Error processing log record: {e}")
 
     class LogRecordSocketReceiver(socketserver.ThreadingTCPServer):
         allow_reuse_address = True

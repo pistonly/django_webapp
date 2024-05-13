@@ -191,17 +191,29 @@ PHOTOLOGUE_IMAGE_FIELD_MAX_LENGTH = 150
 
 LOGGING = {
     'version': 1,
+    'disable_existing_loggers': False,
     'handlers': {
         'socket': {
             'level': 'DEBUG',
-            'class': 'logging.handlers.SocketHandler',
+            'class': 'myproject.logging_handlers.PickleSocketHandler',
             'host': 'localhost',
             'port': 9020,
+        },
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': 'django.log',  # 指定日志文件的名称和路径
+            'formatter': 'standard',  # 指定使用哪个格式器
+        },
+    },
+    'formatters': {
+        'standard': {
+            'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
         },
     },
     'loggers': {
         'django': {
-            'handlers': ['socket'],
+            'handlers': ['socket', 'file'],  # 同时使用 socket 和 file 处理器
             'level': 'DEBUG',
             'propagate': False,
         },
