@@ -4,6 +4,9 @@ import json
 import numpy as np
 from PIL import Image
 import io
+import logging
+
+logger = logging.getLogger("django")
 
 current_dir = Path(__file__).resolve().parent
 configure_dir = current_dir / 'configure'
@@ -85,10 +88,10 @@ class cameraManager:
         camera_info = self.camera_dict.get(sn)
         if camera_info:
             self.current_camera = mvCamera(camera_info)
-            print(f"camera: {sn} start success!")
+            logger.info(f"camera: {sn} start success!")
             return
         else:
-            print(f"camera: {sn} start failed!")
+            logger.info(f"camera: {sn} start failed!")
 
     def start_camera(self, sn):
         self.update_camera_list(start_default=False)
@@ -100,7 +103,7 @@ class cameraManager:
             self.current_camera.close_camera()
             self._start_camera(sn)
         else:
-            print(f"camera: {sn} started!")
+            logger.info(f"camera: {sn} started!")
 
         # confiugre
         self.init_camera_configure(sn)
@@ -168,7 +171,7 @@ class cameraManager:
     def close_camera(self):
         if self.current_camera is not None:
             self.current_camera.close_camera()
-            print(f"{self.current_camera.sn} closed")
+            logger.info(f"{self.current_camera.sn} closed")
             self.current_camera = None
 
     def get_one_frame(self, soft_trigger=None):

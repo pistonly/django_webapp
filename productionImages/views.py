@@ -22,6 +22,9 @@ from rest_framework import status
 from photologue.models import Gallery, Photo
 from django.core.files.base import ContentFile
 from .serializers import PhotoUploadSerializer
+import logging
+
+logger = logging.getLogger("django")
 
 
 @login_required
@@ -29,7 +32,7 @@ def production_view(request):
     # get latest production
     user_name = request.user.username
     data = {"user_name": user_name}
-    print(data)
+    logger.info(data)
     return render(request, "productionImages/gallery.html", context=data)
 
 

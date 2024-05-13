@@ -9,6 +9,9 @@ import time
 import numpy as np
 from asgiref.sync import sync_to_async
 from concurrent.futures import ThreadPoolExecutor
+import logging
+
+logger = logging.getLogger("django")
 
 
 async def get_correct_client_id(client_info: list,
@@ -80,16 +83,16 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                         "current_product":
                         PLCControlConsumer.current_product,
                     }))
-                print("stop ok!")
+                logger.info("stop ok!")
         except Exception as e:
-            print("disconnect error: ", str(e))
+            logger.info("disconnect error: ", str(e))
 
     async def receive(self, text_data):
         data = json.loads(text_data)
-        # print("-----------------------------")
-        # # print(data)
-        # print("plc_checking", PLCControlConsumer.plc_checking)
-        # print("-----------------------------")
+        # logger.info("-----------------------------")
+        # # logger.info(data)
+        # logger.info("plc_checking", PLCControlConsumer.plc_checking)
+        # logger.info("-----------------------------")
 
         if 'client_id' in data:
             client_id = data['client_id']
@@ -160,10 +163,10 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                     await self.plc_check_task
                     self.plc_check_task = None
             except:
-                print("plc check cancel error")
+                logger.info("plc check cancel error")
             finally:
                 self.plc_check_task = None
-                print(
+                logger.info(
                     "plc check cancelled++++++++++++++++++++++++++++++++++++++++"
                 )
 
@@ -194,7 +197,7 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                             }))
 
             else:
-                print(f"target: {target} not in clients")
+                logger.info(f"target: {target} not in clients")
 
     async def simulate_check(self):
         while PLCControlConsumer.plc_checking:
@@ -228,9 +231,9 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                             "trig_id": self.bottle_count,
                             "timestamp": timestamp
                         }))
-                    print(f"{plc_reg} send timestamp: {time.time()}, target: {_id}")
+                    logger.info(f"{plc_reg} send timestamp: {time.time()}, target: {_id}")
             except Exception as e:
-                print(f"send M1 trigger error: {e}")
+                logger.info(f"send M1 trigger error: {e}")
 
 
     async def check_plc_reg(self):
@@ -238,20 +241,20 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
         self.start_time = time.time()
         self.bottle_count = 0
         if not plc.connect():
-            print("~~~~~~~~~~~~~~~~~~~~ check ~~~~~~~~~~~~~~~~~~~~")
-            print("plc is offline")
-            print("~~~~~~~~~~~~~~~~~~~~ check ~~~~~~~~~~~~~~~~~~~~")
+            logger.info("~~~~~~~~~~~~~~~~~~~~ check ~~~~~~~~~~~~~~~~~~~~")
+            logger.info("plc is offline")
+            logger.info("~~~~~~~~~~~~~~~~~~~~ check ~~~~~~~~~~~~~~~~~~~~")
             await self.simulate_check()
 
             return
 
-        print("~~~~~~~~~~~~~~~~~~~~ check ~~~~~~~~~~~~~~~~~~~~")
+        logger.info("~~~~~~~~~~~~~~~~~~~~ check ~~~~~~~~~~~~~~~~~~~~")
         while PLCControlConsumer.plc_checking:
             M4_trigged = False
             for reg_ind, reg in enumerate(["M1", "M2", "M3", "M4"]):
                 success, M_val = plc.get_M(reg)
                 if success and int(M_val) > 0:
-                    print(f"{reg}: {M_val} ")
+                    logger.info(f"{reg}: {M_val} ")
                     await self.plc_send(reg_ind, (reg_ind + 1) , reg)
                     plc.set_M(reg, 0)
                     if reg == "M4":
@@ -307,6 +310,6 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                 noNG_num = product.noNG_num
 
             except Exception as e:
-                print(f"get product error: {e}")
+                logger.info(f"get product error: {e}")
 
         return complete, ng, noNG_num, noNG_rate

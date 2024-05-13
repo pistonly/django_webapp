@@ -188,3 +188,22 @@ def photo_upload_to(instance, filename):
 
 PHOTOLOGUE_PATH = photo_upload_to
 PHOTOLOGUE_IMAGE_FIELD_MAX_LENGTH = 150
+
+LOGGING = {
+    'version': 1,
+    'handlers': {
+        'socket': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.SocketHandler',
+            'host': 'localhost',
+            'port': 9020,
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['socket'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}
