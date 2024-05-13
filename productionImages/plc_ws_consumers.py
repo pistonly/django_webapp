@@ -44,12 +44,14 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
     plc_check_task = None
     channel_layer = get_channel_layer()
     plc_checking = False
-    _lock = Lock()
+    _lock = None
     camera_num = 18
     current_product = ""
     ng_dict = {}
 
     async def connect(self):
+        if not self._lock:
+            self._lock = Lock()
         await self.accept()
 
     async def disconnect(self, close_code):
