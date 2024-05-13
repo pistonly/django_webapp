@@ -11,7 +11,9 @@ import io
 import time
 from plc.plc_control import plcControl
 from .camera_manager import cameraManager
+import logging
 
+logger = logging.getLogger("django")
 
 
 class CameraStreamConsumer(AsyncWebsocketConsumer):
@@ -19,7 +21,7 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
     camera_manager = cameraManager()
     async def connect(self):
         await self.accept()
-        print("connected")
+        logger.info("connected")
         self.camera_feed_task = None
         self.preview = False
         self.product_show = False
@@ -77,10 +79,10 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
             try:
                 await self.plc_check_task
             except asyncio.CancelledError:
-                print("plc cancelled")
+                logger.info("plc cancelled")
 
     async def receive(self, text_data: str, bytes_data=None):
-        print(f"received data: {text_data}, bytes: {bytes_data}")
+        logger.info(f"received data: {text_data}, bytes: {bytes_data}")
         text_data_json = json.loads(text_data)
         camera_sn = text_data_json.get("sn")
 
@@ -97,7 +99,7 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
 
         if "save_configure" in text_data_json:
             success, message = self.check_sn(camera_sn)
-            if not success: print(message); return;
+            if not success: logger.info(message); return;
             config_f = text_data_json.get("config_f")
             success, message = self.camera_manager.save_configure(config_f)
             await self.send(json.dumps({"message": message}))
@@ -105,7 +107,7 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
 
         if "load_configure" in text_data_json:
             success, message = self.check_sn(camera_sn)
-            if not success: print(message); return;
+            if not success: logger.info(message); return;
             config_f = text_data_json.get("config_f")
             success, message = self.camera_manager.load_configure(config_f)
             await self.send(json.dumps({"message": message}))
@@ -113,7 +115,7 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
 
         if "reset_configure" in text_data_json:
             success, message = self.check_sn(camera_sn)
-            if not success: print(message); return;
+            if not success: logger.info(message); return;
             config_f = text_data_json.get("config_f")
             success, message = self.camera_manager.reset_configure(config_f)
             await self.send(json.dumps({"message": message}))
@@ -121,14 +123,14 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
 
         if "get_camera_info" in text_data_json:
             success, message = self.check_sn(camera_sn)
-            if not success: print(message); return;
+            if not success: logger.info(message); return;
             success, camera_info = self.camera_manager.get_camera_info()
             await self.send(json.dumps({"camera_info": camera_info}))
             return
 
         if "set_camera" in text_data_json:
             success, message = self.check_sn(camera_sn)
-            if not success: print(message); return;
+            if not success: logger.info(message); return;
             params = text_data_json.get("params")
             success, camera_info = self.camera_manager.set_camera(params)
             # TODO: 
@@ -187,7 +189,7 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
             message = ""
             success, buffer = self.camera_manager.soft_trigger(camera_sn)
             if not success:
-                print("ws:: soft_trigger failed: ", buffer)
+                logger.info("ws:: soft_trigger failed: ", buffer)
                 message = buffer
             else:
                 await self.send_frame(buffer)
@@ -196,9 +198,9 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
             return
 
         if "soft_trigger" in text_data_json and trigger_mode == 2:
-            print("plc trigger")
+            logger.info("plc trigger")
             if self.plc_trigger_task is None:
-                print("plc trigger task")
+                logger.info("plc trigger task")
                 self.plc_trigger_task = asyncio.create_task(self.check_plc_trigger(camera_sn))
             return 
 
@@ -206,7 +208,7 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
             if self.camera_feed_task is None:
                 self.preview = True
                 self.camera_feed_task = asyncio.create_task(self.camera_feed(camera_sn))
-                print("ws task started")
+                logger.info("ws task started")
             return
 
 
@@ -224,7 +226,7 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
         try:
             await self.send(text_data=json.dumps({"frame": frame}))
         except:
-            print("send frame error")
+            logger.info("send frame error")
 
     async def camera_feed(self, sn):
         try:
@@ -232,7 +234,7 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
             if sn != self.camera_manager.get_sn():
                 success, message = self.camera_manager.start_camera(sn)
                 if not success:
-                    print(message)
+                    logger.info(message)
                     return 
             t0 = time.time()
             get_frame_cost = []
@@ -240,12 +242,12 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
                 t0_p = time.time()
                 frame = await self.get_camera_frame()
                 get_frame_cost.append(time.time() - t0_p)
-                # print(f"get frame cost: {time.time() - t0_p}")
+                # logger.info(f"get frame cost: {time.time() - t0_p}")
                 await self.send_frame(frame)  # 调用send_frame发送图像数据
                 if frame_num % 30 == 29:
                     if len(get_frame_cost) > 30:
                         get_frame_cost = get_frame_cost[-30:]
-                    print(f"frame rate: {30 / (time.time() - t0)}, get_frame fps: {1 / np.mean(get_frame_cost)}")
+                    logger.info(f"frame rate: {30 / (time.time() - t0)}, get_frame fps: {1 / np.mean(get_frame_cost)}")
                     t0 = time.time()
                 frame_num += 1
                 wait_time = 0.05 - (time.time() - t0_p)  # 20fps
@@ -254,7 +256,7 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
                 else:
                     await asyncio.sleep(0.1)
         except asyncio.CancelledError:
-            print("camera feed cancelled")
+            logger.info("camera feed cancelled")
             pass
 
     async def check_plc_trigger(self, camera_sn):
@@ -277,7 +279,7 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
                     success, buffer = self.camera_manager.get_one_frame()
                     if not success:
                         message = buffer
-                        print("plc trigger failed: ", buffer)
+                        logger.info("plc trigger failed: ", buffer)
                     else:
                         await self.send_frame(buffer)
                         message = "plc_trigger_success"
@@ -318,7 +320,7 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
                                             "M_data": m_updated,
                                             "D_data": d_updated}))
             if not plc_online:
-                print("stopping plc checking")
+                logger.info("stopping plc checking")
                 self.plc_checking = False
             await asyncio.sleep(1.5)
 
@@ -334,7 +336,7 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
             try:
                 await self.camera_feed_task
             except asyncio.CancelledError:
-                print('error from disconnect')
+                logger.info('error from disconnect')
 
         # close camera
         self.camera_manager.close_camera()
@@ -346,7 +348,7 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
             try:
                 await self.plc_check_task
             except asyncio.CancelledError:
-                print("plc cancelled")
+                logger.info("plc cancelled")
 
         # plc trigger
         self.plc_trigger_checking = False
@@ -355,12 +357,12 @@ class CameraStreamConsumer(AsyncWebsocketConsumer):
             try:
                 await self.plc_trigger_task
             except asyncio.CancelledError:
-                print("plc trigger cancelled")
+                logger.info("plc trigger cancelled")
 
     async def get_camera_frame(self):
         success, buffer = self.camera_manager.get_one_frame()
         if not success:
-            print(f"ws:: get_camera_frame failed: ", buffer)
+            logger.info(f"ws:: get_camera_frame failed: ", buffer)
             frame = np.random.randint(0, 255, (640, 640), dtype=np.uint8)
             frame = Image.fromarray(frame)
             buffer = io.BytesIO()

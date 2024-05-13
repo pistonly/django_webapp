@@ -26,8 +26,7 @@ django.setup()
 from photologue.models import Photo, Gallery
 import logging
 
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("django")
 
 current_dir = Path(__file__).resolve().parent
 configure_dir = current_dir / 'configure'
@@ -113,7 +112,7 @@ def capture_and_upload(camera_manager: cameraManager, gallery_title, plc_timesta
     camera_roi_info = dict(zip(['roi0', 'roi1', 'roi0_disabled', 'roi1_disabled'],
                                camera_roi_info))
     data = prepare_one_image(img_io, gallery_title, camera_roi_info, ng)
-    # logging.info(f"{gallery_title}: get one immage")
+    # logger.info(f"{gallery_title}: get one immage")
     gallery = Gallery.objects.get(title=gallery_title)
     photo = Photo(**data)
     photo.save()
@@ -140,23 +139,23 @@ async def websocket_client(camera_manager, gallery_title, uri):
                 message = {"client_id": gallery_title}
             await websocket.send(json.dumps(message))
             response = await websocket.recv()
-            logging.info(f"0< {response}")
+            logger.info(f"0< {response}")
 
             try:
                 # get camera_id from ws server
                 response = json.loads(response)
                 gallery_title = response['client_id']
-                logging.info(f"client_id updated: {gallery_title}")
+                logger.info(f"client_id updated: {gallery_title}")
             except Exception as e:
-                logging.info(f"init connect error: {e}")
+                logger.info(f"init connect error: {e}")
 
             while True:
                 message = await websocket.recv()
-                logging.info(f"{gallery_title}:< {message}")
+                logger.info(f"{gallery_title}:< {message}")
                 message = json.loads(message)
 
                 if "stop" in message:
-                    logging.info("Stopping as per 'stop' signal.")
+                    logger.info("Stopping as per 'stop' signal.")
                     break
 
                 elif "trig" in message:
@@ -164,7 +163,7 @@ async def websocket_client(camera_manager, gallery_title, uri):
                     plc_timestamp = message.get("timestamp")
                     img_info = await loop.run_in_executor(
                         None, capture_and_upload, camera_manager, gallery_title, plc_timestamp)
-                    logging.info(f"{gallery_title}: Capturing image at timestamp: {img_info['start_timestamp']}, finish at: {img_info['finish_timestamp']}.")
+                    logger.info(f"{gallery_title}: Capturing image at timestamp: {img_info['start_timestamp']}, finish at: {img_info['finish_timestamp']}.")
 
                     img_info.update({
                         "target": "web",
@@ -174,9 +173,9 @@ async def websocket_client(camera_manager, gallery_title, uri):
                     })
                     await websocket.send(json.dumps(img_info))
     except ConnectionClosed:
-        logging.info("ws closed")
+        logger.info("ws closed")
     except Exception as e:
-        logging.info(f"An unexpected error: {e}")
+        logger.info(f"An unexpected error: {e}")
 
 
 async def main(camera_manager: cameraManager, gallery_title: str, ws_uri: str):
@@ -192,7 +191,7 @@ def run_asyncio_camera_loop(camera_sn: str, batch_number: str, ws_uri: str):
             camera_name = camera_manager.current_camera.name
             camera_ord = int(camera_name.split("_")[-1])
             if camera_ord > 18 or camera_ord < 0:
-                logging.info("camera ord should in range(0, 18)")
+                logger.info("camera ord should in range(0, 18)")
                 camera_ord = 0
             gallery_title = f"{batch_number}_{camera_ord}"
         else: 
@@ -201,8 +200,8 @@ def run_asyncio_camera_loop(camera_sn: str, batch_number: str, ws_uri: str):
 
         asyncio.run(main(camera_manager, gallery_title, ws_uri))
     except Exception as e:
-        logging.info(f"camera process error: {str(e)}")
+        logger.info(f"camera process error: {str(e)}")
 
     finally:
-        logging.info("==================process quit=====================")
+        logger.info("==================process quit=====================")
         camera_manager.close_camera()
