@@ -55,8 +55,9 @@ def main():
             "forget to activate a virtual environment?"
         ) from exc
 
-    log_server_process = Process(target=start_log_server)
-    log_server_process.start()  # 启动日志服务器
+    if len(sys.argv) > 1 and sys.argv[1] == "runserver":
+        log_server_process = Process(target=start_log_server)
+        log_server_process.start()  # 启动日志服务器
     execute_from_command_line(sys.argv)
 
 
