@@ -9,3 +9,6 @@ pymodbus
 websockets
 aiohttp
 mysqlclient
+ultralytics
+onnxruntime-gpu
+onnxruntime
