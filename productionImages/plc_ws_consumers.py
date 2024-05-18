@@ -189,6 +189,10 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                         None, self.statistic_ng, data.get("trig_id"),
                         data.get("ng"))
                     if complete:
+                        # comment these lines, because: sending from camera process
+                        # if ng:
+                        #     await self.send_ng_signal()
+                        # 
                         await client.send(
                             text_data=json.dumps({
                                 "ng_full": ng,
@@ -234,6 +238,18 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                     logger.info(f"{plc_reg} send timestamp: {time.time()}, target: {_id}")
             except Exception as e:
                 logger.info(f"send M1 trigger error: {e}")
+
+    async def send_ng_signal(self):
+        plc = plcControl()
+        if not plc.connect():
+            logger.info("~~~~~~~~~~~~~~~~~~~~ ng signal ~~~~~~~~~~~~~~~~~~~~")
+            logger.info("plc is offline")
+            logger.info("~~~~~~~~~~~~~~~~~~~~ ng signal ~~~~~~~~~~~~~~~~~~~~")
+            return
+        else:
+            plc.set_M("M11")
+            return
+
 
 
     async def check_plc_reg(self):

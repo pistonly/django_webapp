@@ -219,3 +219,9 @@ LOGGING = {
         },
     },
 }
+
+onnx_path = str(BASE_DIR / "four_camera.onnx")
+conf_thres = 0.3
+iou_thres = 0.5
+ng_ids = [0, 1, 2, 3, 4, 5]
+camera_num = 4
