@@ -214,14 +214,14 @@ LOGGING = {
     'loggers': {
         'django': {
             'handlers': ['socket', 'file'],  # 同时使用 socket 和 file 处理器
-            'level': 'DEBUG',
+            'level': 'INFO',
             'propagate': False,
         },
     },
 }
 
-onnx_path = str(BASE_DIR / "four_camera.onnx")
-conf_thres = 0.3
-iou_thres = 0.5
-ng_ids = [0, 1, 2, 3, 4, 5]
-camera_num = 4
+ONNX_PATH = str(BASE_DIR / "four_camera.onnx")
+CONF_THRES = 0.3
+IOU_THRES = 0.5
+NG_IDS = [0, 1, 2, 3, 4, 5]
+CAMERA_NUM = 4

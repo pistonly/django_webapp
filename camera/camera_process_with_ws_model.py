@@ -17,6 +17,8 @@ import os
 from asgiref.sync import sync_to_async
 from concurrent.futures import ThreadPoolExecutor
 import time
+from plc.plc_control import plcControl
+from django.conf import settings
 
 from .onnx_infer import YOLOv8
 
@@ -27,19 +29,17 @@ django.setup()
 
 from photologue.models import Photo, Gallery
 import logging
-from plc.plc_control import plcControl
-from django.conf import settings
 
 logger = logging.getLogger("django")
 
 current_dir = Path(__file__).resolve().parent
 configure_dir = current_dir / 'configure'
 
-onnx_path = settings.onnx_path
-conf_thres = settings.conf_thres
-iou_thres = settings.iou_thres
-ng_ids = settings.ng_ids
-camera_num = settings.camera_num
+onnx_path = settings.ONNX_PATH
+conf_thres = settings.CONF_THRES
+iou_thres = settings.IOU_THRES
+ng_ids = settings.NG_IDS
+camera_num = settings.CAMERA_NUM
 detection = YOLOv8(onnx_path, conf_thres, iou_thres)
 
 plc = plcControl()
@@ -106,11 +106,13 @@ def prepare_one_image(img_io, gallery_title, camera_info, ng=False):
 
 
 def get_AI_results(img_io):
+    logger.info("AI infering .....")
+    t0 = time.time()
     pred_img, pred_ids = detection.process_one_image(img_io)
+    logger.info(f"AI finished:cost time: {time.time() - t0}s")
     pred_ids_s = set(pred_ids)
     pred_ng_ids = pred_ids_s.intersection(ng_ids)
     ng = True if len(pred_ng_ids) else False
-
     frame = Image.fromarray(pred_img)
     buffer = io.BytesIO()
     frame.save(buffer, format="JPEG")
