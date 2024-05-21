@@ -220,7 +220,7 @@ LOGGING = {
     },
 }
 
-ONNX_PATH = str(BASE_DIR / "four_camera.onnx")
+ONNX_PATH = str(BASE_DIR / "hsh_18_model_640.engine")
 CONF_THRES = 0.3
 IOU_THRES = 0.5
 NG_IDS = [0, 1, 2, 3, 4, 5]

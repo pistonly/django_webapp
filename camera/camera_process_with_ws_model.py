@@ -20,7 +20,7 @@ import time
 from plc.plc_control import plcControl
 from django.conf import settings
 
-from .onnx_infer import YOLOv8
+from .tensorrt_infer import YOLOv8
 
 sys.path.insert(0, "..")
 
