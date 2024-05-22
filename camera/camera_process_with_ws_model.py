@@ -191,6 +191,8 @@ async def websocket_client(camera_manager, gallery_title, uri):
             if camera_num != 4:
                 _id = _id // 3
             NG_reg = f"M1{_id + 1}"
+            logger.info(f"$$$$$$$$$$$$$$$$$$$$$$--NG_reg: {NG_reg}, camera_num: {camera_num}, {_id}")
+
 
             while True:
                 message = await websocket.recv()
