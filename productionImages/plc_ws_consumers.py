@@ -13,6 +13,12 @@ import logging
 
 logger = logging.getLogger("django")
 
+plc = plcControl()
+if not plc.connect():
+    logger.info("~~~~~~~~~~~~~~~~~~~~ ng signal camera process ~~~~~~~~~~~~~~~~~~~~")
+    logger.info("plc is offline")
+    logger.info("~~~~~~~~~~~~~~~~~~~~ ng signal camera process ~~~~~~~~~~~~~~~~~~~~")
+    plc = None
 
 async def get_correct_client_id(client_info: list,
                                 connected_clients: dict,
@@ -174,34 +180,38 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
         if "target" in data:
             target = data['target']
             client = self.connected_clients.get(target)
+            gallery_id = data['gallery_id']
+            _id = int(gallery_id.split("_")[-1])
+            row, col = _id % 3, _id // 3
+            img_id = f"#r-{row}-c-{col}"
+            data.update({"img_id": img_id})
+            ng_camera_i = data.get('ng')
+            if ng_camera_i:
+                ng_reg = data.get("NG_reg")
+                plc.set_M(ng_reg)
+                logger.info(f"----------------send ng: {ng_reg}==============")
+
             if client:
-                gallery_id = data['gallery_id']
-                _id = int(gallery_id.split("_")[-1])
-                row, col = _id % 3, _id // 3
-                img_id = f"#r-{row}-c-{col}"
-                data.update({"img_id": img_id})
                 await client.send(text_data=json.dumps(data))
-                # statistic ng
-                async with self._lock:
-                    loop = asyncio.get_running_loop()
+            # statistic ng
+            async with self._lock:
+                loop = asyncio.get_running_loop()
 
-                    complete, ng, noNG_num, noNG_rate = await loop.run_in_executor(
-                        None, self.statistic_ng, data.get("trig_id"),
-                        data.get("ng"))
-                    if complete:
-                        # comment these lines, because: sending from camera process
-                        # if ng:
-                        #     await self.send_ng_signal()
-                        # 
-                        await client.send(
-                            text_data=json.dumps({
-                                "ng_full": ng,
-                                "noNG_rate": noNG_rate,
-                                "noNG_num": noNG_num
-                            }))
+                complete, ng, noNG_num, noNG_rate = await loop.run_in_executor(
+                    None, self.statistic_ng, data.get("trig_id"),
+                    data.get("ng"))
+                if complete and client:
+                    # comment these lines, because: sending from camera process
+                    # if ng:
+                    #     await self.send_ng_signal()
+                    # 
+                    await client.send(
+                        text_data=json.dumps({
+                            "ng_full": ng,
+                            "noNG_rate": noNG_rate,
+                            "noNG_num": noNG_num
+                        }))
 
-            else:
-                logger.info(f"target: {target} not in clients")
 
     async def simulate_check(self):
         while PLCControlConsumer.plc_checking:
@@ -223,6 +233,7 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                                 {"speed": f"{self.speed:.2f}"}))
 
     async def plc_send(self, id_start, id_end, plc_reg="M1"):
+        # send trigger to camera
         timestamp = time.time()
         for _id, client in self.connected_clients.items():
             if _id == "web":
@@ -239,29 +250,24 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
             except Exception as e:
                 logger.info(f"send M1 trigger error: {e}")
 
-    async def send_ng_signal(self):
-        plc = plcControl()
-        if not plc.connect():
-            logger.info("~~~~~~~~~~~~~~~~~~~~ ng signal ~~~~~~~~~~~~~~~~~~~~")
-            logger.info("plc is offline")
-            logger.info("~~~~~~~~~~~~~~~~~~~~ ng signal ~~~~~~~~~~~~~~~~~~~~")
-            return
-        else:
-            plc.set_M("M11")
-            return
+    # async def send_ng_signal(self):
+    #     plc = plcControl()
+    #     if not plc.connect():
+    #         logger.info("~~~~~~~~~~~~~~~~~~~~ ng signal ~~~~~~~~~~~~~~~~~~~~")
+    #         logger.info("plc is offline")
+    #         logger.info("~~~~~~~~~~~~~~~~~~~~ ng signal ~~~~~~~~~~~~~~~~~~~~")
+    #         return
+    #     else:
+    #         plc.set_M("M11")
+    #         return
 
 
 
     async def check_plc_reg(self):
-        plc = plcControl()
         self.start_time = time.time()
         self.bottle_count = 0
-        if not plc.connect():
-            logger.info("~~~~~~~~~~~~~~~~~~~~ check ~~~~~~~~~~~~~~~~~~~~")
-            logger.info("plc is offline")
-            logger.info("~~~~~~~~~~~~~~~~~~~~ check ~~~~~~~~~~~~~~~~~~~~")
+        if not plc:
             await self.simulate_check()
-
             return
 
         logger.info("~~~~~~~~~~~~~~~~~~~~ check ~~~~~~~~~~~~~~~~~~~~")

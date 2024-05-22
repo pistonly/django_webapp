@@ -42,12 +42,12 @@ ng_ids = settings.NG_IDS
 camera_num = settings.CAMERA_NUM
 detection = YOLOv8(onnx_path, conf_thres, iou_thres)
 
-plc = plcControl()
-if not plc.connect():
-    logger.info("~~~~~~~~~~~~~~~~~~~~ ng signal camera process ~~~~~~~~~~~~~~~~~~~~")
-    logger.info("plc is offline")
-    logger.info("~~~~~~~~~~~~~~~~~~~~ ng signal camera process ~~~~~~~~~~~~~~~~~~~~")
-    plc = None
+# plc = plcControl()
+# if not plc.connect():
+#     logger.info("~~~~~~~~~~~~~~~~~~~~ ng signal camera process ~~~~~~~~~~~~~~~~~~~~")
+#     logger.info("plc is offline")
+#     logger.info("~~~~~~~~~~~~~~~~~~~~ ng signal camera process ~~~~~~~~~~~~~~~~~~~~")
+#     plc = None
 
 
 def get_random_image(text):
@@ -118,13 +118,13 @@ def get_AI_results(img_io):
     frame.save(buffer, format="JPEG")
     return ng, buffer
 
-def send_ng(gallery_id):
-    _id = int(gallery_id.split("_")[-1])
-    if plc is not None:
-        if camera_num != 4:
-            _id = _id // 3
-        plc.set_M(f"M1{_id + 1}")
-        logger.info(f"----------send ng: M1{_id + 1}===============")
+# def send_ng(gallery_id):
+#     _id = int(gallery_id.split("_")[-1])
+#     if plc is not None:
+#         if camera_num != 4:
+#             _id = _id // 3
+#         plc.set_M(f"M1{_id + 1}")
+#         logger.info(f"----------send ng: M1{_id + 1}===============")
 
 
 def capture_and_upload(camera_manager: cameraManager, gallery_title, plc_timestamp, delay=0.02):
@@ -142,8 +142,8 @@ def capture_and_upload(camera_manager: cameraManager, gallery_title, plc_timesta
             print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
     finish_timestamp = time.time()
     ng, img_io = get_AI_results(img_io)
-    if ng:
-        send_ng(gallery_title)
+    # if ng:
+    #     send_ng(gallery_title)
 
     camera_roi_info = camera_manager.get_camera_roi()
     camera_roi_info = dict(zip(['roi0', 'roi1', 'roi0_disabled', 'roi1_disabled'],
@@ -186,6 +186,12 @@ async def websocket_client(camera_manager, gallery_title, uri):
             except Exception as e:
                 logger.info(f"init connect error: {e}")
 
+            # NG register
+            _id = int(gallery_title.split("_")[-1])
+            if camera_num != 4:
+                _id = _id // 3
+            NG_reg = f"M1{_id + 1}"
+
             while True:
                 message = await websocket.recv()
                 logger.info(f"{gallery_title}:< {message}")
@@ -207,6 +213,7 @@ async def websocket_client(camera_manager, gallery_title, uri):
                         "gallery_id": gallery_title,
                         "updated": 1,
                         "trig_id": message.get("trig_id"),
+                        "NG_reg": NG_reg,
                     })
                     await websocket.send(json.dumps(img_info))
     except ConnectionClosed:
