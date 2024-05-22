@@ -123,8 +123,8 @@ def send_ng(gallery_id):
     if plc is not None:
         if camera_num != 4:
             _id = _id // 3
-        plc.set_M(f"M_1{_id + 1}")
-        logger.info(f"----------send ng: M_1{_id + 1}===============")
+        plc.set_M(f"M1{_id + 1}")
+        logger.info(f"----------send ng: M1{_id + 1}===============")
 
 
 def capture_and_upload(camera_manager: cameraManager, gallery_title, plc_timestamp, delay=0.02):
