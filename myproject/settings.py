@@ -224,4 +224,4 @@ ONNX_PATH = str(BASE_DIR / "hsh_yolov8n_first-640.engine")
 CONF_THRES = 0.3
 IOU_THRES = 0.5
 NG_IDS = [0, 1, 2, 3, 4, 5]
-CAMERA_NUM = 4
+CAMERA_NUM = 18

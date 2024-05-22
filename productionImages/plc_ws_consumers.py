@@ -190,6 +190,9 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
                 ng_reg = data.get("NG_reg")
                 plc.set_M(ng_reg)
                 logger.info(f"----------------send ng: {ng_reg}==============")
+                val = plc.get_M(ng_reg)
+                logger.info(f"----------------test get: {ng_reg}, val: {val}==============")
+
 
             if client:
                 await client.send(text_data=json.dumps(data))
