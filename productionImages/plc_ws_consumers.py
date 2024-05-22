@@ -186,7 +186,7 @@ class PLCControlConsumer(AsyncWebsocketConsumer):
             img_id = f"#r-{row}-c-{col}"
             data.update({"img_id": img_id})
             ng_camera_i = data.get('ng')
-            if ng_camera_i:
+            if ng_camera_i and plc:
                 ng_reg = data.get("NG_reg")
                 plc.set_M(ng_reg)
                 logger.info(f"----------------send ng: {ng_reg}==============")
