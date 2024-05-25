@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-r+e--j-unh$4&kyb-&4v14tuz7m&yhkbxbg+m2o9ft)jjj&t8c"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ["192.168.0.207", "39.106.57.99", "127.0.0.1", '192.168.31.54']
 
@@ -154,26 +154,16 @@ STATIC_ROOT = BASE_DIR / "static_files"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
-
 ASGI_APPLICATION = "myproject.asgi.application"
 
 SITE_ID = 1
 LOGIN_URL = 'login'
 
-# CHANNEL_LAYERS = {
-#     "default": {
-#         "BACKEND": "channels_redis.core.RedisChannelLayer",
-#         "CONFIG": {
-#             "hosts": [("127.0.0.1", 6379)],
-#         },
-#     },
-# }
-
 import unicodedata
 from django.utils.encoding import force_str
 
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 def photo_upload_to(instance, filename):
     filename = unicodedata.normalize('NFKD', force_str(filename)).encode(
@@ -182,8 +172,7 @@ def photo_upload_to(instance, filename):
     _ind = gallery_title.rfind("-")
     _ind = len(gallery_title) if _ind == -1 else _ind
     product = gallery_title[:_ind]
-    file_path = str(MEDIA_ROOT / "photologue" / product / gallery_title / filename)
-    return file_path
+    return f"photologue/{product}/{gallery_title}/{filename}"
 
 
 PHOTOLOGUE_PATH = photo_upload_to
